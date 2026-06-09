@@ -12,7 +12,7 @@
 ## 安装(新机器)
 
 ```bash
-git clone <repo-url> ~/Projects/ai-kit
+git clone https://github.com/atopsnow/ai-kit.git ~/Projects/ai-kit
 bash ~/Projects/ai-kit/install.sh
 ```
 
