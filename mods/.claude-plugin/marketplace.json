@@ -1,0 +1,21 @@
+{
+  "name": "claude-insight-mods",
+  "owner": {
+    "name": "ai-kit"
+  },
+  "metadata": {
+    "description": "Runnable Claude Code mod examples from the claude-insight notes."
+  },
+  "plugins": [
+    {
+      "name": "token-weather",
+      "source": "./token-weather",
+      "description": "A live forecast of the context window, drawn above the prompt."
+    },
+    {
+      "name": "turn-signals",
+      "source": "./turn-signals",
+      "description": "Appends one JSON line per failed or refused tool call and per finished turn to a shared signal log."
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "turn-signals",
+  "version": "0.1.0",
+  "description": "Appends one JSON line per failed or refused tool call and per finished turn to a shared signal log.",
+  "author": { "name": "ai-kit" },
+  "types": "./types/index.d.ts"
+}

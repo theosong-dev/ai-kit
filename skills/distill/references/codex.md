@@ -1,0 +1,12 @@
+# Codex 分流与验收
+
+仅在当前宿主是 Codex 时读取。配置前核对当前 Codex 版本与官方手册,不要复制 Claude schema。
+
+- 生命周期/工具拦截:按当前支持的事件配置 `~/.codex/hooks.json`。新增或修改的非托管 hooks 需要信任审核;未获信任时不得声称已经生效,不得绕过审核。
+- 沙箱外命令策略:使用 `~/.codex/rules/*.rules`,按当前支持的规则表达允许、询问或禁止。它不等价于 Claude 的 `permissions.deny`,也不是所有沙箱内操作的通用拦截器。先确认目标操作实际经过该机制;覆盖不到时评估沙箱配置或受支持的工具 hook。
+- 目录要求:使用子目录 `AGENTS.md`;不要把 `.claude/rules` 的 `paths:` 当成 Codex 自动支持的格式。文件类型要求可写进对应目录规则或按需 skill,并说明适用范围。
+- 先给最小 diff 和影响范围,只落实已授权的具体变更,不顺带放宽其他命令权限。
+- 信号日志(signals.sh)与原始会话记录追查:Codex 无此输入,跳过。
+- 规则用本机支持的 `codex execpolicy check` 检查匹配与不匹配案例(参数先查 `--help`),再验证实际执行行为。Hooks 在完成信任要求后用真实事件验证。配置解析通过不等于拦截生效,缺少信任或实际调用时如实报告未验证。
+
+官方参考:[Hooks](https://learn.chatgpt.com/docs/hooks)、[Rules](https://learn.chatgpt.com/docs/agent-configuration/rules)。

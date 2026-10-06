@@ -45,8 +45,10 @@ initai() {
 # ============================================================
 checkgit() {
   local base="${1:-${AI_KIT_PROJECTS_DIR:-$HOME/Projects}}"
-  local found=0
+  local found=0 dir
+  [ -n "$ZSH_VERSION" ] && setopt localoptions nullglob
   for dir in "$base"/*/; do
+    [ -d "$dir" ] || continue
     if [ ! -d "$dir/.git" ]; then
       echo "未初始化: $dir"
       found=1

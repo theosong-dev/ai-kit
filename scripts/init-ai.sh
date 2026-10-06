@@ -5,7 +5,14 @@
 
 set -e
 
-TEMPLATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TEMPLATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates/project"
+
+for f in AGENTS.md .ai/PROGRESS.md .ai/DECISIONS.md .ai/GOTCHAS.md; do
+  if [ ! -f "$TEMPLATE_DIR/$f" ]; then
+    echo "error  模板缺失: $TEMPLATE_DIR/$f(请确认 ai-kit 仓库完整)" >&2
+    exit 1
+  fi
+done
 
 mkdir -p .ai
 

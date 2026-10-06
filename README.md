@@ -1,93 +1,102 @@
-# AI 项目协作工具包
+# ai-kit
 
-跨 AI 工具的工程记忆体系。AI 工具(Claude Code / Codex / Cursor…)可以换,项目记忆不丢。
+给 AI coding agent(Claude Code、Codex)用的工程协作工具包:项目记忆模板、收尾与蒸馏 skill、分档实施 agent 与独立验收 agent、护栏 hook、状态显示 mod,以及背后的经验文档。
 
-## 设计原则
+## 解决什么问题
 
-- **工具适配层最薄,项目事实层最厚。** 真正的资产是 `.ai/` 里的 markdown,与任何 AI 工具解耦。
-- **AGENTS.md 当主入口**,跨工具开放标准。`CLAUDE.md` 是指向它的 symlink,零重复、零漂移。
-- **单一事实源贯穿项目级与全局级。** 项目级 `CLAUDE.md → AGENTS.md`;全局级 `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md → ~/.ai/AGENTS.md`。
-- **起步只要 3 个记忆文件**,不预防性建文件,用两周后再按需扩展。
+- **换工具、换会话就丢记忆。** 用项目内 `.ai/` 文件记录进度、决策、踩坑,Claude Code 与 Codex 读同一份。
+- **agent 说「做完了」不可信。** 实施交给 subagent,验收交给不带实施历史、只读的 verifier。
+- **同样的错反复犯。** 踩坑先记进 `.ai/GOTCHAS.md`,攒够了用 `/distill` 提炼成规则;能用 hook 拦的不写成提示词。
 
-## 安装(新机器)
+## 仓库内容
+
+| 目录 / 文件 | 是什么 | 装到哪 |
+|---|---|---|
+| `templates/global/AGENTS.md` | 跨工具共享的个人偏好 | `~/.ai/AGENTS.md` |
+| `templates/global/claude-CLAUDE.md` | Claude Code 全局入口 | `~/.claude/CLAUDE.md` |
+| `templates/global/codex-AGENTS.md` | Codex 全局入口 | `~/.codex/AGENTS.md` |
+| `templates/project/` | 项目 `AGENTS.md` 与 `.ai/` 三个记忆文件模板 | `.ai/` 三个文件复制到 `~/.ai/templates/`;项目里由 `initai` 生成 |
+| `skills/wrap`、`skills/distill` | 会话收尾;经验蒸馏成规则 | `~/.agents/skills/<名>` 软链接到仓库;`~/.claude/skills/<名>`、`~/.codex/skills/<名>` 软链接到 `~/.agents/skills/<名>` |
+| `claude/agents/` | 四档实施 agent 与 `verifier` | 复制到 `~/.claude/agents/` |
+| `claude/hooks/` | `guard.sh`(危险命令护栏)、`session-start.sh`(注入进度);`guard_test.sh` 是测试 | 除 `*_test.sh` 外复制到 `~/.claude/hooks/` 并加可执行位 |
+| `claude/settings-snippet.json` | 注册上述 hook 的片段 | 不自动安装,手动合并进 `~/.claude/settings.json` |
+| `mods/` | Claude Code 插件 `token-weather`、`turn-signals` | 不安装,用 `--plugin-dir` 加载 |
+| `docs/` | 经验文档 | 不安装 |
+| `scripts/`、`shell/` | `init-ai.sh`、`newproj.sh`;`shell/ai-kit.sh` 提供 `initai` / `newproj` / `checkgit` | shell rc 里追加一行 source `shell/ai-kit.sh` |
+| `tests/` | `install_test.sh`,在临时假 HOME 下测试安装 | 不安装 |
+
+## 安装
 
 ```bash
 git clone https://github.com/atopsnow/ai-kit.git ~/Projects/ai-kit
-bash ~/Projects/ai-kit/install.sh
+cd ~/Projects/ai-kit
+bash install.sh --dry-run   # 只打印将做什么
+bash install.sh
 ```
 
-`install.sh` 幂等,可重复运行,做三件事:
-
-1. 把 `source .../shell/ai-kit.sh` 接入你的 `~/.zshrc` 或 `~/.bashrc`(已接入则跳过)。
-2. 铺设全局 `~/.ai/AGENTS.md`(不存在才从模板建),并建 `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md` 指向它的软链接。
-3. 安装 wrap skill 到 `~/.claude/skills/wrap/`(`--no-skill` 可跳过)。
-
-装完开新终端(或 `source` 对应 rc 文件),即可用 `newproj` / `initai` / `checkgit`。
-然后编辑 `~/.ai/AGENTS.md` 填入你的全局个人偏好。
-
-> 绝不覆盖已存在的 `~/.ai/AGENTS.md` 与已正确的软链接;遇到真实文件只警告不动手。
-
-## 平台支持
-
-| 平台 | 说明 |
+| 参数 | 作用 |
 |---|---|
-| macOS / Linux | 原生 bash/zsh,完整支持 |
-| Windows | 经 WSL 或 Git Bash 运行(Git Bash 需 `git config --global core.symlinks true`) |
+| `--dry-run` | 只打印,不写任何东西 |
+| `--no-skill` | 不装 `wrap` / `distill` |
+| `--no-claude` | 不复制 `claude/agents`、`claude/hooks` |
+| `--no-codex` | 不写 `~/.codex/AGENTS.md`,不建 `~/.codex/skills/` 软链接 |
 
-原生 PowerShell / cmd 不支持(symlink 需管理员或开发者模式)。若 symlink 不可用,
-install.sh 会自动退化为复制并打印警告——此时全局文件不再随源同步,需手动维护。
+**不覆盖任何已存在的文件**(含真实目录、悬空软链接)。遇到已存在的目标只输出一行:
 
-## 文件说明
+- `ok`:内容一致,或软链接已指向同一位置(相对路径软链接也算)。
+- `skip ... 对比: diff ...`:内容不同或指向别处,未改动;按提示的 `diff` 自行比较、手动合并。
+- `create` / `link` / `write`:本次新建文件、软链接,或往 shell rc 追加 source 行。
 
-| 文件 | 作用 | 更新频率 |
-|---|---|---|
-| `AGENTS.md` | 项目工作协议 + 构建命令。所有 agent 入口 | 低,稳定 |
-| `CLAUDE.md` | → symlink 指向 AGENTS.md | 不手动改 |
-| `.ai/PROGRESS.md` | 进度 + 任务清单。跨会话 handoff 主文件 | 高,每次会话 |
-| `.ai/DECISIONS.md` | 决策日志,只增不改 | 有决策时 |
-| `.ai/GOTCHAS.md` | 踩坑记录,只增不改 | 踩坑时 |
+可重复运行,第二次不再出现 `create` / `link` / `write`。不做 git 操作,不改 `~/.claude/settings.json`。
 
-## 在新项目里启用
+安装后手动做:
 
-安装后,在任意项目根目录运行:
+1. 开新终端或 `source` 你的 shell rc。
+2. 编辑 `~/.ai/AGENTS.md`,填入自己的偏好。
+3. 把 `claude/settings-snippet.json` 的 `hooks` 合并进 `~/.claude/settings.json`。
+4. mods:`claude --plugin-dir <ai-kit>/mods`,详见 `mods/README.md`。
+
+## 从旧版 ai-kit 升级
+
+旧版把 `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md` 软链接到 `~/.ai/AGENTS.md`。新版是「共享偏好 + 每个宿主一个入口文件」:`~/.ai/AGENTS.md` 只放共享偏好,两个入口文件各自独立、先引用共享文件再补充本工具配置。
+
+`install.sh` 不动旧软链接,只打印 `note`。迁移:
 
 ```bash
-initai          # 在已存在的项目补铺 .ai 体系(不碰 git)
+rm ~/.claude/CLAUDE.md ~/.codex/AGENTS.md   # 只删软链接
+bash install.sh                             # 从模板生成入口文件
 ```
 
-或新建工程(建目录 + git init + .gitignore + .ai 体系):
+再把 `~/.ai/AGENTS.md` 里只属于某个工具的内容移到对应入口文件。旧版重装会覆盖 wrap skill 的问题已修:已存在的 skill 目录一律不动。
 
-```bash
-newproj my-robot                  # 在默认父目录($HOME/Projects 或 $AI_KIT_PROJECTS_DIR)下创建
-newproj my-robot ~/Projects/work  # 指定父目录
-```
+## 在项目里启用
 
-脚本幂等,已存在的文件会跳过。运行后编辑 `AGENTS.md` 填入项目简介和构建命令。
+- `initai`:在当前项目生成 `AGENTS.md`、`CLAUDE.md -> AGENTS.md` 软链接和 `.ai/PROGRESS.md`、`DECISIONS.md`、`GOTCHAS.md`,已存在的跳过。
+- `newproj <项目名> [父目录]`:建目录、`git init`、`.gitignore`、上述文件,结束后停在新目录。父目录默认 `$AI_KIT_PROJECTS_DIR`,未设置时 `~/Projects`。
+- `checkgit [目录]`:列出该目录下未 `git init` 的子项目。
 
 ## 日常用法
 
-**会话开头:**
-> 读 .ai/PROGRESS.md,告诉我上次到哪了,以及接下来建议做什么。
+- 会话开头读 `.ai/PROGRESS.md`;注册了 SessionStart hook 则自动注入。
+- 结束前 `/wrap`:更新进度与下一步,有决策或踩坑时同步 `DECISIONS.md` / `GOTCHAS.md`。
+- 积累后 `/distill`:把重复或代价高的坑提炼成规则,放到共享规则、skill 或 hook 中的一处,并删掉过时规则。
 
-**会话结束前:**
-> /wrap
+主会话只做规划、派单、验收;实施按难度派给某一档实施 agent,完成后派 `verifier`,只给它任务要求、diff 和验收标准。理由见 `docs/02-主会话与实施分工.md`。
 
-(或不依赖 skill,直接说:更新 .ai/PROGRESS.md;有决策或踩坑同步更新 DECISIONS / GOTCHAS。)
+## 经验文档
 
-## wrap skill(仅 Claude Code)
+| 文件 | 内容 |
+|---|---|
+| `docs/01-双层记忆循环.md` | 项目记忆怎么不丢、不膨胀、变成规则 |
+| `docs/02-主会话与实施分工.md` | 规划、派单、验收分开做 |
+| `docs/03-护栏机制化.md` | 能用机制拦的,不写成提示词规则 |
+| `docs/04-信号日志与验收统计.md` | 跨会话记录失败与验收结论 |
+| `docs/05-Claude-Code-多账号.md` | 同一台 Mac 上两个账号互不串 |
+| `docs/06-让模型输出更好读.md` | 让模型的输出更好读:速查 |
 
-`install.sh` 默认已把 `scripts/wrap-skill-SKILL.md` 装到 `~/.claude/skills/wrap/SKILL.md`。
-跳过用 `bash install.sh --no-skill`。
+## 平台支持与已知限制
 
-skill 是 Claude Code 机制,不跨工具。收尾协议的事实源在 AGENTS.md「项目记忆协议」段——
-Codex 等其他工具读 AGENTS.md 即可执行同样流程,只是没有 /wrap 这个快捷触发。
-
-## 全局个人偏好
-
-`.ai/` 是**项目级**记忆。你的**跨项目个人偏好**放在全局单一事实源 `~/.ai/AGENTS.md`,
-各工具的全局配置文件由 install.sh 建为指向它的软链接:
-
-- `~/.claude/CLAUDE.md` → `~/.ai/AGENTS.md`(Claude Code 全局)
-- `~/.codex/AGENTS.md` → `~/.ai/AGENTS.md`(Codex 全局)
-
-只放跨项目偏好,不放任何具体项目信息。改一处,所有工具同步生效。
+- 已测:macOS。`bash tests/install_test.sh` 在 macOS bash 3.2 与 bash 5.x 下通过(只用临时假 HOME)。
+- 未测:Linux、Windows、WSL、Git Bash。
+- 软链接不可用时退化为复制(不随仓库更新),该分支未实际触发过。
+- Codex 侧只有入口模板和共享 skill;`claude/agents`、`claude/hooks`、`mods/` 仅 Claude Code。

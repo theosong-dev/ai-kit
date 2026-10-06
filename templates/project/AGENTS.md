@@ -6,18 +6,14 @@
 
 ## 项目简介
 
-公开的跨 AI 工具协作工具包:项目记忆与全局入口模板(`templates/`)、共享 skill(`skills/`:wrap / distill)、Claude Code 的 agents 与 hooks(`claude/`)、mods(`mods/`)、经验文档(`docs/`)和安装脚本(`install.sh`、`scripts/`、`shell/`)。
-
-这是**公开仓库**:任何提交不得含私有项目名、绝对家目录路径(写 `~/…` 或 `$HOME`)、密钥或个人账号信息;提交前 grep 自查。
+<!-- 一两句话说明这个项目是什么、当前阶段。-->
 
 ## 构建 / 测试 / 运行
 
-- 安装预演(不落盘):`bash install.sh --dry-run`
-- 隔离实装:`HOME=$(mktemp -d) bash install.sh`,再检查该临时 HOME 下的产物;不要在真实 HOME 上试新改动
-- 安装脚本测试(假 HOME,不碰真实家目录):`bash tests/install_test.sh`
-- hook 测试:`bash claude/hooks/guard_test.sh`
-- mod 测试:`claude plugin test ./mods/turn-signals`
-- skill 夹具:按 `skills/wrap/tests.md`、`skills/distill/tests.md` 里的命令跑
+<!-- agent 猜不到的命令写在这里。没有就留空,不要编。例: -->
+<!-- - 安装:`pnpm install` -->
+<!-- - 测试:`pnpm test` -->
+<!-- - 启动:`pnpm dev` -->
 
 ## 开始工作前必读
 
