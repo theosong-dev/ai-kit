@@ -8,5 +8,3 @@
 - 先给最小 diff 和影响范围,只落实已授权的具体变更,不顺带放宽其他命令权限。
 - 信号日志(signals.sh)与原始会话记录追查:Codex 无此输入,跳过。
 - 规则用本机支持的 `codex execpolicy check` 检查匹配与不匹配案例(参数先查 `--help`),再验证实际执行行为。Hooks 在完成信任要求后用真实事件验证。配置解析通过不等于拦截生效,缺少信任或实际调用时如实报告未验证。
-
-官方参考:[Hooks](https://learn.chatgpt.com/docs/hooks)、[Rules](https://learn.chatgpt.com/docs/agent-configuration/rules)。
