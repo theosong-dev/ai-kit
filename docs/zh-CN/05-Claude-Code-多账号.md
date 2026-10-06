@@ -1,5 +1,7 @@
 # Claude Code 多账号
 
+[English](../05-claude-code-multi-account.md) | 简体中文
+
 目标：同一台 Mac 上并存两个 Claude 账号，会话、记忆、凭据、浏览器互不串。
 
 以下结论在 macOS + Claude Code 2.1.274 上实际搭建验证过；未验证的点单列在最后。

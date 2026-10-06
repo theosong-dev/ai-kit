@@ -1,50 +1,50 @@
 # AGENTS.md
 
-本仓库由 AI coding agent 协作维护。任何 agent 开始工作前,先按下方协议读取项目记忆。
+This repository is maintained by AI coding agents working together. Before starting any work, every agent reads project memory as described below.
 
-> CLAUDE.md 是指向本文件的 symlink。Claude Code、Codex 及其他 agent 读到的是同一份内容。
+> CLAUDE.md is a symlink to this file. Claude Code, Codex and other agents all read the same content.
 
-## 项目简介
+## Project overview
 
-<!-- 一两句话说明这个项目是什么、当前阶段。-->
+<!-- One or two sentences: what this project is and its current stage. -->
 
-## 构建 / 测试 / 运行
+## Build / test / run
 
-<!-- agent 猜不到的命令写在这里。没有就留空,不要编。例: -->
-<!-- - 安装:`pnpm install` -->
-<!-- - 测试:`pnpm test` -->
-<!-- - 启动:`pnpm dev` -->
+<!-- Put commands here that an agent cannot guess. If there are none, leave this empty. Do not invent any. Examples: -->
+<!-- - Install: `pnpm install` -->
+<!-- - Test: `pnpm test` -->
+<!-- - Start: `pnpm dev` -->
 
-## 开始工作前必读
+## Required reading before work
 
-按顺序读取以下文件,几秒内恢复项目状态:
+Read these files in order to restore project state in seconds:
 
-1. `.ai/PROGRESS.md` —— 当前进度、上次做到哪、下一步、未完事项
-2. 本文件「构建 / 测试 / 运行」段
+1. `.ai/PROGRESS.md` — current progress, where the last session stopped, next steps, open items
+2. The "Build / test / run" section of this file
 
-相关时再读:
+Read when relevant:
 
-- `.ai/DECISIONS.md` —— 涉及架构、技术选型、产品方向的历史决策
-- `.ai/GOTCHAS.md` —— 踩过的坑、失败过的方案、不要重走的路
+- `.ai/DECISIONS.md` — past decisions on architecture, technology choices and product direction
+- `.ai/GOTCHAS.md` — gotchas hit, approaches that failed, paths not to retake
 
-## 工作协议
+## Working protocol
 
-- 修改范围严格围绕用户当前请求,不主动扩大 scope;需扩大先说明原因。
-- 改代码前先读现有实现,不基于文件名或猜测直接改。
-- 任务只有在实现**并验证**后才能标记完成;代码写完不等于完成。
+- Keep changes strictly within the user's current request. Do not expand scope on your own; if scope must grow, explain why first.
+- Read the existing implementation before changing code. Do not change code based on file names or guesses.
+- A task can be marked done only after it is implemented **and verified**. Code written is not done.
 
-## 项目记忆协议
+## Project memory protocol
 
-完成有意义的进展后,更新 `.ai/PROGRESS.md`:本次改了什么、当前状态、下一步建议、遗留问题。
+After meaningful progress, update `.ai/PROGRESS.md`: what changed this session, current status, suggested next steps, open issues.
 
-产生重要决策时,追加到 `.ai/DECISIONS.md`(只增不改):背景、选了什么、放弃的备选、原因。
+When an important decision is made, append it to `.ai/DECISIONS.md` (append-only): context, what was chosen, rejected alternatives, rationale.
 
-踩坑或方案失败时,追加到 `.ai/GOTCHAS.md`(只增不改):试了什么、为什么失败、以后该怎么做。
+When you hit a gotcha or an approach fails, append it to `.ai/GOTCHAS.md` (append-only): what you tried, why it failed, what to do next time.
 
-> 这三件事是跨会话延续的核心。不写进文件的进度,下次会话就丢了。
+> These three files carry work across sessions. Progress not written to a file is lost in the next session.
 
-## 沟通
+## Communication
 
-- 默认中文回复;命令、路径、代码符号、框架名保留英文。
-- 汇报代码改动时说明改了哪些文件、为什么。
-- 遇到阻塞,说明阻塞点并给出最小下一步。
+- Reply in the language the user writes in (default English). Code identifiers, technical terms, error messages, commands, paths and framework names stay as written.
+- When reporting code changes, state which files changed and why.
+- When blocked, state the blocker and give the smallest next step.

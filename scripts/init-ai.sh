@@ -1,26 +1,32 @@
 #!/bin/bash
-# init-ai.sh —— 在当前项目铺设跨工具 AI 协作体系
-# 用法:在项目根目录运行 `bash init-ai.sh`
-# 幂等:已存在的文件不会被覆盖。
+# init-ai.sh -- set up the cross-tool AI collaboration files in the current project
+# Usage: run `bash init-ai.sh` in the project root
+# Idempotent: existing files are never overwritten.
+# AI_KIT_LANG=zh-CN picks the templates under zh-CN/templates/project.
 
 set -e
 
-TEMPLATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates/project"
+KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ "${AI_KIT_LANG:-}" = "zh-CN" ]; then
+  TEMPLATE_DIR="$KIT_DIR/zh-CN/templates/project"
+else
+  TEMPLATE_DIR="$KIT_DIR/templates/project"
+fi
 
 for f in AGENTS.md .ai/PROGRESS.md .ai/DECISIONS.md .ai/GOTCHAS.md; do
   if [ ! -f "$TEMPLATE_DIR/$f" ]; then
-    echo "error  模板缺失: $TEMPLATE_DIR/$f(请确认 ai-kit 仓库完整)" >&2
+    echo "error  template missing: $TEMPLATE_DIR/$f (check that the ai-kit repo is complete)" >&2
     exit 1
   fi
 done
 
 mkdir -p .ai
 
-# 复制模板,已存在则跳过
+# copy a template; skip if the target exists
 copy_if_absent() {
   local src="$1" dst="$2"
   if [ -e "$dst" ]; then
-    echo "skip   $dst (已存在)"
+    echo "skip   $dst (exists)"
   else
     cp "$src" "$dst"
     echo "create $dst"
@@ -32,13 +38,13 @@ copy_if_absent "$TEMPLATE_DIR/.ai/PROGRESS.md"    ".ai/PROGRESS.md"
 copy_if_absent "$TEMPLATE_DIR/.ai/DECISIONS.md"   ".ai/DECISIONS.md"
 copy_if_absent "$TEMPLATE_DIR/.ai/GOTCHAS.md"     ".ai/GOTCHAS.md"
 
-# CLAUDE.md 指向 AGENTS.md 的 symlink
+# CLAUDE.md is a symlink to AGENTS.md
 if [ -e "CLAUDE.md" ] || [ -L "CLAUDE.md" ]; then
-  echo "skip   CLAUDE.md (已存在)"
+  echo "skip   CLAUDE.md (exists)"
 else
   ln -s AGENTS.md CLAUDE.md
   echo "link   CLAUDE.md -> AGENTS.md"
 fi
 
 echo ""
-echo "完成。下一步:编辑 AGENTS.md 填入项目简介和构建命令。"
+echo "Done. Next: edit AGENTS.md with the project overview and build commands."

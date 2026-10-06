@@ -1,49 +1,62 @@
 #!/usr/bin/env bash
-# signals.sh —— /distill 的跨会话重复线索收集器(读 turn-signals 信号日志)。
+# signals.sh -- cross-session recurrence collector for /distill (reads the turn-signals log).
 #
-#     bash signals.sh <PROJECT_ROOT> [--days N]      # 默认最近 30 天
+#     bash signals.sh <PROJECT_ROOT> [--days N]      # default: last 30 days
 #
-# 日志:默认 ~/.local/state/claude-insight/turn-signals.jsonl,可用环境变量 TURN_SIGNALS_PATH 覆盖
-# (格式见 ai-kit 仓库 mods/README.md)。只读,不写日志。
+# Log: defaults to ~/.local/state/claude-insight/turn-signals.jsonl; override with TURN_SIGNALS_PATH
+# (format: mods/README.md in the ai-kit repo). Read-only; never writes the log.
 #
-# 做什么(全部确定性完成,输出是"线索"不是"判定"):
-#   1. 只取 type=="tool" 的行;cwd 等于项目根或在其下(按路径段比较,/a/foo 不匹配 /a/foo-bar);
-#      ts(UTC ISO)不早于"现在 - N 天"。项目根先转绝对路径并去尾部斜杠,另外也接受其 realpath。
-#   2. 按签名分组:tool + kind + Bash 的命令头 + 归一化后的错误首行。
-#   3. 只输出出现在 ≥2 个不同 session 的组(同一 session 重复多少次都只算 1),
-#      按 session 数降序、总次数降序、最近时间降序、签名字典序排。
-#      每组:总次数、session 数、首末日期、最多 3 条样例(每个 session 至多 1 条,取最近的)。
+# What it does (fully deterministic; output is "leads", not "verdicts"):
+#   1. Keep only type=="tool" rows whose cwd is the project root or below it (compared by path segment,
+#      so /a/foo does not match /a/foo-bar)
+#      and whose ts (UTC ISO) is not earlier than "now - N days". The project root is made absolute
+#      and stripped of trailing slashes; its realpath is accepted too.
+#   2. Group by signature: tool + kind + Bash command head + normalized first error line.
+#   3. Print only groups seen in >=2 distinct sessions (repeats within one session count once),
+#      sorted by session count desc, total count desc, latest time desc, signature asc.
+#      Each group: total count, session count, first/last date, up to 3 samples (at most 1 per
+#      session, the most recent).
 #
-# 错误首行:先去掉 <tool_use_error> 这类尖括号标签,跳过空行和 Bash 的 "Exit code N" 行,取第一条有内容的行;都没有就用 "Exit code N" 本身。
-# 归一化(按顺序):
-#   - 引号内容 → … :"x" 'x' `x` “x” ‘x’ 「x」 『x』 (同一行内配对)
+# First error line: strip angle-bracket tags such as <tool_use_error>, skip blank lines and Bash's
+# "Exit code N" line, take the first non-empty line; if none, use "Exit code N" itself.
+# Normalization (in order):
+#   - quoted content -> ...: "x" 'x' `x` “x” ‘x’ 「x」 『x』 (paired within one line)
 #   - URL → <URL>;uuid → <UUID>
-#   - 路径 → <PATH>:以 / ~/ ./ ../ 开头的串,及含 / 的相对路径串(如 src/a.ts)
-#   - 含数字的 ≥7 位十六进制串(commit、agentId 等)→ <HEX>;其余数字 → <N>
-#   - 压缩空白,截前 80 字符(日志本身把 error 截在 200 字符,截短可减少因截断点不同造成的误分)
-# Bash 命令头:去掉开头的 `cd X &&` / `cd X;`、环境变量赋值、sudo/env/time/nohup/command/timeout N 前缀,
-#   取第一个词(路径取 basename);第二个词是纯小写子命令形式([a-z][a-z0-9-]*)且第一个词不在
-#   "后面跟参数而非子命令"的名单(ls cat echo ssh bash python3 …)里时,一并计入,如 `git push`、`npm run`。
-# 已知局限:
-#   - 误并:不同文件 / 不同引号内容的同类错误会落进一组(这正是目的);错误首行只有 "Exit code N"
-#     时,同一命令头的不同失败会合在一起。
-#   - 误分:同一类错误措辞随参数变化而结构不同(如单复数、附带的提示句不同)时会分成多组;
-#     名单外的 CLI 第二个词若是普通参数(如 `foo bar` vs `foo baz`)也会分组。
-#   - 含 / 的普通词(and/or)会被当成路径抹掉;英文撇号(doesn't … it's)会被当成一对单引号抹掉中间内容。
-#   4. 「verifier 验收线索」节:取 type=="verdict" 的行(verifier 结论,时间窗口与项目过滤同上),
-#      先打结论分布(各 verdict 条数、会话数),再按 issues[].cat 分组列出所有有问题的类别,
-#      按 会话数降序、条数降序、cat 字典序 排;每组:条数、会话数、首末日期、按 implementer 计数、
-#      最多 3 条样例(每个 session 至多 1 条,取最近的)。会话数 ≥2 的组标 ★(distill 进入门槛)。
-#      cat 不在枚举内归 other;issues 非数组 / 元素非对象跳过。末行「全部项目合计」不过滤项目。
+#   - paths -> <PATH>: tokens starting with / ~/ ./ ../, and relative paths containing / (e.g. src/a.ts)
+#   - hex strings of >=7 chars containing a digit (commits, agentIds, ...) -> <HEX>; other numbers -> <N>
+#   - collapse whitespace, keep the first 80 chars (the log already truncates errors at 200 chars;
+#     a shorter cut reduces false splits caused by different truncation points)
+# Bash command head: drop a leading `cd X &&` / `cd X;`, env assignments, and sudo/env/time/nohup/
+#   command/timeout N prefixes,
+#   then take the first word (basename for paths); the second word is included when it looks like a
+#   lowercase subcommand ([a-z][a-z0-9-]*) and the first word is not on
+#   the "takes arguments, not subcommands" list (ls cat echo ssh bash python3 ...), e.g. `git push`, `npm run`.
+# Known limitations:
+#   - False merges: the same error on different files / quoted content lands in one group (by design);
+#     when the first error line is only "Exit code N", different failures of one command head merge.
+#   - False splits: one error class whose wording varies with arguments (singular/plural, extra hint
+#     sentences) splits into several groups;
+#     so does an unlisted CLI whose second word is a plain argument (`foo bar` vs `foo baz`).
+#   - Plain words containing / (and/or) are erased as paths; apostrophes (doesn't ... it's) are
+#     treated as a pair of single quotes and the text between them is erased.
+#   4. "verifier leads" section: type=="verdict" rows (verifier conclusions; same window and project filter),
+#      first the verdict distribution (rows per verdict, session count), then every issue category
+#      grouped by issues[].cat,
+#      sorted by session count desc, row count desc, cat asc; each group: rows, sessions, first/last
+#      date, count per implementer,
+#      up to 3 samples (at most 1 per session, the most recent). Groups with >=2 sessions get ★ (the distill entry bar).
+#      Unknown cat -> other; non-array issues / non-object elements are skipped. The last line
+#      ("all projects") is not filtered by project.
 #
-# 坏行(非 JSON 或非对象)跳过并在末尾报数;tool/verdict 行缺 ts/session/cwd 或 ts 无法解析也跳过并报数。
-# 日志不存在、为空、无符合条件的组、找不到 python3:各打印一行说明,退出码 0。
-# 依赖:python3(标准库)。兼容 macOS 自带 bash 3.2。
+# Bad rows (not JSON or not an object) are skipped and counted at the end; tool/verdict rows missing
+# ts/session/cwd or with an unparseable ts are skipped and counted too.
+# Missing log, empty log, no matching groups, or no python3: print one line and exit 0.
+# Requires python3 (stdlib only). Compatible with the bash 3.2 shipped with macOS.
 
 set -u
 
 if ! command -v python3 >/dev/null 2>&1; then
-  echo "(未找到 python3,跳过信号日志分析)"
+  echo "(python3 not found; skipping signal log analysis)"
   exit 0
 fi
 
@@ -54,7 +67,7 @@ import json, os, re, sys
 from datetime import datetime, timedelta, timezone
 
 def usage(msg):
-    sys.stderr.write("signals.sh: %s\n用法: bash signals.sh <PROJECT_ROOT> [--days N]\n" % msg)
+    sys.stderr.write("signals.sh: %s\nusage: bash signals.sh <PROJECT_ROOT> [--days N]\n" % msg)
     sys.exit(2)
 
 log = sys.argv[1]
@@ -65,19 +78,19 @@ while i < len(args):
     a = args[i]
     if a == "--days":
         if i + 1 >= len(args):
-            usage("--days 缺少参数")
+            usage("--days requires a value")
         v = args[i + 1]
         if not re.fullmatch(r"[0-9]+", v) or int(v) <= 0:
-            usage("--days 需要正整数,收到 %r" % v)
+            usage("--days requires a positive integer, got %r" % v)
         days = min(int(v), 36500); i += 2; continue
     if a.startswith("--days="):
         v = a.split("=", 1)[1]
         if not re.fullmatch(r"[0-9]+", v) or int(v) <= 0:
-            usage("--days 需要正整数,收到 %r" % v)
+            usage("--days requires a positive integer, got %r" % v)
         days = min(int(v), 36500); i += 1; continue
     if root_arg is None:
         root_arg = a; i += 1; continue
-    usage("多余参数 %r" % a)
+    usage("unexpected argument %r" % a)
 if root_arg is None:
     root_arg = "."
 
@@ -98,10 +111,10 @@ def in_project(cwd):
     return False
 
 if not os.path.isfile(log):
-    print("(无信号日志:%s 不存在,跳过)" % log)
+    print("(no signal log: %s does not exist; skipping)" % log)
     sys.exit(0)
 if os.path.getsize(log) == 0:
-    print("(信号日志为空:%s,跳过)" % log)
+    print("(signal log is empty: %s; skipping)" % log)
     sys.exit(0)
 
 now = datetime.now(timezone.utc)
@@ -134,7 +147,7 @@ QUOTES = [('"', '"'), ("'", "'"), ("`", "`"), ("“", "”"), ("‘", "’"),
           ("「", "」"), ("『", "』")]
 
 def normalize(s):
-    s = s[:2000]  # 写入端已截到 200 字符;这里再兜一道,防手工或损坏日志的超长行拖慢正则
+    s = s[:2000]  # the writer already truncates to 200 chars; guard again so hand-edited or corrupt overlong rows cannot slow the regexes
     for o, c in QUOTES:
         s = re.sub(re.escape(o) + r"[^" + re.escape(o + c) + r"\n]*" + re.escape(c), o + "…" + c, s)
     s = re.sub(r"[A-Za-z][A-Za-z0-9+.-]*://\S+", "<URL>", s)
@@ -193,9 +206,9 @@ bad_fields = 0
 tool_rows = 0
 groups = {}
 CATS = ("no-real-path", "criteria-fail", "test-fail", "out-of-scope", "uncommitted", "false-claim", "other")
-verdicts = []      # 本项目窗口内 (verdict, session)
-proj_issues = []   # 本项目窗口内 issue
-all_issues = []    # 全部项目窗口内 issue
+verdicts = []      # (verdict, session) for this project within the window
+proj_issues = []   # issues for this project within the window
+all_issues = []    # issues for all projects within the window
 
 with open(log, "r", encoding="utf-8", errors="replace") as f:
     for raw in f:
@@ -258,10 +271,10 @@ def report_skips():
     if bad_json or bad_fields:
         parts = []
         if bad_json:
-            parts.append("非 JSON %d 行" % bad_json)
+            parts.append("%d non-JSON rows" % bad_json)
         if bad_fields:
-            parts.append("tool/verdict 行缺 ts/session/cwd 或 ts 无法解析 %d 行" % bad_fields)
-        print("(跳过坏行:%s)" % ",".join(parts))
+            parts.append("%d tool/verdict rows missing ts/session/cwd or with unparseable ts" % bad_fields)
+        print("(skipped bad rows: %s)" % "; ".join(parts))
 
 hits = []
 for key, rows in groups.items():
@@ -271,19 +284,19 @@ for key, rows in groups.items():
         hits.append((-len(sessions), -len(rows), -last.timestamp(), key, rows, sessions))
 hits.sort(key=lambda h: (h[0], h[1], h[2], h[3]))
 
-window = "最近 %d 天(UTC %s 起)" % (days, cutoff.strftime("%Y-%m-%d %H:%M"))
+window = "last %d days (since %s UTC)" % (days, cutoff.strftime("%Y-%m-%d %H:%M"))
 print("==================================================")
-print(" distill signals report(跨会话重复线索,非判定)")
+print(" distill signals report (cross-session recurrence leads, not verdicts)")
 print(" root: %s" % " | ".join(sorted(roots)))
 print(" log : %s" % log)
-print(" 窗口: %s" % window)
+print(" window: %s" % window)
 print("==================================================")
 
 if not hits:
-    print("(无跨 ≥2 个会话的同类工具失败;窗口内本项目 tool 行 %d 条,%d 个会话,%d 组)"
+    print("(no tool failure recurs across >=2 sessions; this project in window: %d tool rows, %d sessions, %d groups)"
           % (tool_rows, len({r["session"] for rs in groups.values() for r in rs}), len(groups)))
 else:
-    print("groups: %d(仅列出现在 ≥2 个不同 session 的组)" % len(hits))
+    print("groups: %d (only groups seen in >=2 distinct sessions)" % len(hits))
 for n, (_, _, _, key, rows, sessions) in enumerate(hits, 1):
     tool, kind, head, sig = key
     rows = sorted(rows, key=lambda r: r["ts"])
@@ -292,12 +305,12 @@ for n, (_, _, _, key, rows, sessions) in enumerate(hits, 1):
     title = "%s · %s" % (tool, kind) + (" · $ %s" % head if head else "")
     print()
     print("[%d] %s" % (n, title))
-    print("    签名: %s" % (sig or "(无错误文本)"))
-    print("    次数 %d · 会话 %d · %s ~ %s%s" % (len(rows), len(sessions), first.strftime("%Y-%m-%d"),
-          last.strftime("%Y-%m-%d"), (" · 其中 subagent %d 次" % sub) if sub else ""))
+    print("    signature: %s" % (sig or "(no error text)"))
+    print("    count %d · sessions %d · %s ~ %s%s" % (len(rows), len(sessions), first.strftime("%Y-%m-%d"),
+          last.strftime("%Y-%m-%d"), (" · subagent %d" % sub) if sub else ""))
     latest = {}
     for r in rows:
-        latest[r["session"]] = r          # rows 已按时间升序,留下每个 session 最近一条
+        latest[r["session"]] = r          # rows are sorted by time asc, so this keeps the latest row per session
     samples = sorted(latest.values(), key=lambda r: (r["ts"], r["session"]), reverse=True)[:3]
     for r in samples:
         who = r["session"][:8]
@@ -317,33 +330,33 @@ def cat_stats(issues):
         out.setdefault(r["cat"], []).append(r)
     return out
 
-print("---------------- verifier 验收线索 ----------------")
+print("---------------- verifier leads ----------------")
 if not verdicts:
-    print("(窗口内本项目无 verifier 结论记录)")
+    print("(no verifier verdicts for this project in the window)")
 else:
     vc = {}
     for vd, _ in verdicts:
         vc[vd] = vc.get(vd, 0) + 1
     order = ["PASS", "PASS-WITH-NOTES", "FAIL", "UNKNOWN"]
     keys = [k for k in order if k in vc] + sorted(k for k in vc if k not in order)
-    print("结论 %d 条(%s)· 会话 %d" % (len(verdicts), " · ".join("%s %d" % (k, vc[k]) for k in keys),
+    print("verdicts %d (%s) · sessions %d" % (len(verdicts), " · ".join("%s %d" % (k, vc[k]) for k in keys),
           len({s for _, s in verdicts})))
     cs = cat_stats(proj_issues)
     vhits = sorted(cs.items(), key=lambda kv: (-len({r["session"] for r in kv[1]}), -len(kv[1]), kv[0]))
     if not vhits:
-        print("(本项目结论中无问题条目)")
+        print("(no issues in this project's verdicts)")
     for n, (cat, rows) in enumerate(vhits, 1):
         rows = sorted(rows, key=lambda r: r["ts"])
         sessions = {r["session"] for r in rows}
-        mark = " ★ 跨会话重复" if len(sessions) >= 2 else ""
+        mark = " ★ recurs across sessions" if len(sessions) >= 2 else ""
         print()
         print("[V%d] %s%s" % (n, cat, mark))
         imp = {}
         for r in rows:
             if r["impl"]:
                 imp[r["impl"]] = imp.get(r["impl"], 0) + 1
-        imp_s = (" · 实施者: " + " · ".join("%s %d" % (k, imp[k]) for k in sorted(imp, key=lambda k: (-imp[k], k)))) if imp else ""
-        print("    条数 %d · 会话 %d · %s ~ %s%s" % (len(rows), len(sessions), rows[0]["ts"].strftime("%Y-%m-%d"),
+        imp_s = (" · implementers: " + " · ".join("%s %d" % (k, imp[k]) for k in sorted(imp, key=lambda k: (-imp[k], k)))) if imp else ""
+        print("    rows %d · sessions %d · %s ~ %s%s" % (len(rows), len(sessions), rows[0]["ts"].strftime("%Y-%m-%d"),
               rows[-1]["ts"].strftime("%Y-%m-%d"), imp_s))
         latest = {}
         for r in rows:
@@ -354,7 +367,7 @@ else:
 acs = cat_stats(all_issues)
 if acs:
     items = sorted(acs.items(), key=lambda kv: (-len({r["session"] for r in kv[1]}), -len(kv[1]), kv[0]))
-    print("全部项目合计(不过滤项目):" + " · ".join("%s %d条/%d会话" % (c, len(rs), len({r["session"] for r in rs}))
+    print("all projects (not filtered by project): " + " · ".join("%s %d rows/%d sessions" % (c, len(rs), len({r["session"] for r in rs}))
           for c, rs in items))
 print()
 report_skips()

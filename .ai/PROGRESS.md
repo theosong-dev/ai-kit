@@ -1,37 +1,39 @@
-# 项目进度
+# Project progress
 
-> 跨会话 handoff 主文件。每次会话开头读它,结束前更新它。
-> 最后更新:2026-10-06
+> Main cross-session handoff file. Read it at the start of every session, update it before ending.
+> Last updated: 2026-10-06
 >
-> **体积上限(/wrap 用 `wc -l` / `grep -c` 强制,不靠目测):**
-> 全文 ≤ 120 行;「当前状态」≤ 10 行;「进度日志」只留最近 10 条。
-> 超限:把「进度日志」多出的条目**追加**到 `.ai/archive/PROGRESS-YYYY-MM.md`
-> (按归档时年月命名,目录不存在就建),原文进 archive,本文件只留压缩后的一行。
-> 结构固定为下面六段,发现漂移(多余的顶层日期小节等)先归位再更新。
-> 理由:这是每次会话开头都读的 handoff 文件,体积直接吃 context;历史细节 git log 和 archive 里都有。
+> **Size limits (/wrap enforces them with `wc -l` / `grep -c`, not by eyeballing):**
+> Whole file ≤ 120 lines; "Current status" ≤ 10 lines; "Progress log" keeps only the latest 10 entries.
+> If over the limit: **append** the surplus "Progress log" entries to `.ai/archive/PROGRESS-YYYY-MM.md`
+> (named by the year and month of archiving; create the directory if missing). The original text goes into the archive, and this file keeps only a compressed one-liner.
+> The structure is fixed at the six sections below; if you see drift (extra top-level dated sections, etc.), put things back in place before updating.
+> Reason: this is the handoff file read at the start of every session, so its size comes straight out of context; history details live in git log and the archive.
 
-## 当前状态
+## Current status
 
-- 2026-10-06 从 6 月的「三文件模板 + wrap」升级为完整工具包:新增 `templates/`(project / global 模板)、`skills/`(wrap、distill)、`claude/`(实施分档 agents、verifier、hooks、settings 片段)、`mods/`、`docs/`。
-- 全局入口改为「`~/.ai/AGENTS.md` 共享偏好 + 每宿主薄入口」;仓库根 `AGENTS.md` / `.ai/` 改为本仓库自己的真实记忆。
-- 未在新机器上做端到端实装验证;Windows / Git Bash 未测。
+- 2026-10-06 Switched the default language to English; the Chinese versions are kept under `zh-CN/` (install with `--lang zh-CN`).
+- 2026-10-06 Upgraded from the June "three-file template + wrap" to a full toolkit: added `templates/` (project / global templates), `skills/` (wrap, distill), `claude/` (tiered implementer agents, verifier, hooks, settings snippets), `mods/`, `docs/`.
+- The global entry is now "shared preferences in `~/.ai/AGENTS.md` + a thin entry per host"; the repo-root `AGENTS.md` / `.ai/` are this repository's own real memory.
+- No end-to-end install verification on a new machine yet; Windows / Git Bash untested.
 
-## 下一步
+## Next steps
 
-- 在一台干净机器(或全新临时 HOME)上按 README 端到端走一遍安装,确认 Claude Code 与 Codex 都能读到入口、wrap / distill 可用。
-- 在 Windows / Git Bash 下验证 `install.sh` 的软链接与路径处理,不行就在 README 标明不支持。
+- On a clean machine (or a fresh temporary HOME), walk through the install end to end following the README, and confirm that both Claude Code and Codex can read the entry files and that wrap / distill work.
+- Verify `install.sh` symlink and path handling under Windows / Git Bash; if it does not work, state in the README that it is unsupported.
 
-## 任务清单
+## Task list
 
-- [x] 模板搬进 `templates/`,仓库根改为真实记忆
-- [x] 全局模板去私有化(共享偏好 + Claude / Codex 入口)
-- [ ] 新机器端到端实装验证
-- [ ] Windows / Git Bash 验证
+- [x] Move templates into `templates/`; repo root becomes real memory
+- [x] Remove private details from the global templates (shared preferences + Claude / Codex entries)
+- [ ] End-to-end install verification on a new machine
+- [ ] Windows / Git Bash verification
 
-## 遗留 / 待澄清
+## Open issues
 
-## 用户纠正（待蒸馏）
+## User corrections (pending distillation)
 
-## 进度日志
+## Progress log
 
-- 2026-10-06 —— 升级为完整工具包:模板迁入 templates/,全局入口拆成共享偏好 + 每宿主薄入口,补齐仓库自身记忆
+- 2026-10-06 — Switched the default language to English: templates, skills, agents, hooks, installer output and docs; Chinese versions kept under zh-CN/ (install with --lang zh-CN).
+- 2026-10-06 — Upgraded to a full toolkit: templates moved into templates/, global entry split into shared preferences + a thin entry per host, repository's own memory filled in

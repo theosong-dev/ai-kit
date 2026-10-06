@@ -1,56 +1,56 @@
-# 全局 AI Agent 个人偏好
+# Global AI agent personal preferences
 
-> 模板:安装到 `~/.ai/AGENTS.md`,由各宿主的全局入口(`~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md`)引用。语言、Git 规范等偏好按自己情况改。
+> Template: install to `~/.ai/AGENTS.md`. Each host's global entry file (`~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`) references it. Adjust preferences such as language and Git conventions to your situation.
 
-本文件只记录跨所有项目都成立的个人偏好。
-项目背景、进度、架构、任务状态属于具体项目仓库的 `AGENTS.md` 和 `.ai/`,不写入本文件。
+This file records only personal preferences that hold across all projects.
+Project background, progress, architecture and task status belong in each project repository's `AGENTS.md` and `.ai/`, not in this file.
 
-## 通信约定
+## Communication
 
-- 默认用**中文**回复;代码标识符、技术术语、错误信息、命令、路径保留原文。
-- Commit message / PR title / Git tag 用**英文**。
-- 回复简洁,不在结尾复述"我刚才做了什么"——用户能看 diff。
-- 引用文件位置用 `path:line` 格式。
-- 信息不确定时明说不确定,不编造。
+- Reply in the language the user writes in (default English). Code identifiers, technical terms, error messages, commands and paths stay as written.
+- Commit messages / PR titles / Git tags in **English**.
+- Keep replies concise. Do not end with a recap of "what I just did" — the user can read the diff.
+- Cite file locations as `path:line`.
+- When unsure, say so. Do not make things up.
 
-## 主会话与实施 subagent 分工
+## Main session and implementer subagent roles
 
-- 主会话只做规划、讨论、方案设计和裁决,不直接写代码;实施按规格清晰度与风险交给当前宿主可用的 subagent,模型与调用方式见宿主入口。
-- 按规格清晰度、隐藏 edge case 数量与改错代价选择实施模型和推理档位(effort),不按任务大小:规格清楚、机械可检查的任务用轻档,隐藏 edge case 多或改错代价高的用高档;升档前先在派单里给实施者自检手段(能跑的测试、构建或命令)。拿不准时用较强模型,验收标准不因模型而变。
-- 派单必须包含:intent(为什么做)/ 改哪些文件与顺序 / 验收标准(可执行的命令或可观察的行为,不写「正常工作」)/ 约束与风险 / 相关参考(源码、测试、原型文件路径,优先给文件而非文字描述)。标准:没看过本次对话的人能凭派单单独实施。
-- 派单前主会话先写出隐含假设与可能遗漏的 edge case,放进派单。
-- 实施返回后,主会话派 独立 `verifier`(只读,不带实施历史;调用方式见宿主入口)按验收标准复核,主会话依 verifier 报告裁决;verifier FAIL 则带着问题清单再派实施,最多 3 轮,仍不过则停下来交给用户。
-- 例外:纯对话、读代码答疑、一两行的琐碎修改由主会话直接处理,不派 verifier。
+- The main session only plans, discusses, designs solutions and makes final calls. It does not write code directly. Hand implementation to a subagent available on the current host, chosen by spec clarity and risk; models and invocation are in the host entry file.
+- Choose the implementer model and reasoning level (effort) by spec clarity, number of hidden edge cases and cost of getting it wrong, not by task size: clear, mechanically checkable specs get a light tier; many hidden edge cases or a high cost of error get a high tier. Before moving up a tier, first give the implementer a self-check in the brief (a test, build or command it can run). When unsure, use the stronger model; verification criteria do not change with the model.
+- A brief must include: intent (why) / which files to change and in what order / verification criteria (executable commands or observable behavior, never "works correctly") / constraints and risks / references (source, test and prototype file paths; prefer files over prose). Standard: someone who has not seen this conversation can implement from the brief alone.
+- Before writing a brief, the main session writes out implicit assumptions and possibly missed edge cases and puts them in the brief.
+- After the implementer returns, the main session sends an independent `verifier` (read-only, no implementation history; invocation is in the host entry file) to check against the verification criteria, and decides based on the verifier report. If the verifier returns FAIL, brief the implementer again with the issue list, at most 3 rounds; if it still fails, stop and hand over to the user.
+- Exception: pure conversation, code-reading Q&A and trivial one- or two-line changes are handled by the main session directly, with no verifier.
 
-## 工作方式
+## Way of working
 
-- scope 以用户意图的功能语义为准,不按字面:说「隐藏 / 去掉 / 统一」某功能 = 收掉它的全部入口(tab、顶栏按钮、面板、轨道、文案),派单前 grep 列出入口清单写进派单;说「确认 / 看一下」= 只回答不动手;改造是否兼容旧数据先问一句,内部单用户产品默认不留兼容分支(按自己情况改)。需扩大范围先说明原因。
-- 请求涉及文案、页面、模式、provider 时,派单前先用一句话说明自己的理解让用户确认:改的是 Web 界面还是聊天报告、独立页还是嵌入现有页、全局还是某模式下、多个 provider 是共存还是切换。默认共存不做切换、默认独立页。这类误读是历史摩擦点的主要来源,确认一句比返工便宜。
-- 不引入新框架 / 依赖 / 架构模式,除非任务明确需要并说明 tradeoff。
-- 备案、权限、合同、是否已部署这类外部事实,工具查不到不等于不存在;涉及方向性决策前先让用户在权威入口核实,或逐一排查可达资源后再下结论。
-- 提配置 / 入口类方案时,先给显式、无隐式状态、放行范围最宽的最简版本并写清风险,收窄和自动化作为可选项列后面,不作默认。
-- 已获授权的远程与部署命令直接执行,不要停下来让用户手动跑;命令写法与权限配置见当前宿主入口。权限以当前宿主实际规则为准,不能把另一宿主的放行视为本宿主授权;遇到执行环境要求的审批按其流程处理。
-- 计数、去重、排序、批量校验、数值计算等需要确定性保证的工作,用脚本或确定性工具,不交给 LLM 判断。判断、归类、综合类工作可由 LLM 完成。
-- API key / secret 放仓库外的统一位置(如 `~/.config/<你的名字>/secrets.env`),仓库 `.env` 不放密钥;该文件若被 shell source,含 `|` `;` 空格等字符的值必须加引号。
+- Scope follows the functional meaning of the user's intent, not the literal wording: "hide / remove / unify" a feature = remove all of its entry points (tab, top-bar button, panel, track, copy); before the brief, grep and list the entry points in the brief. "Confirm / take a look" = answer only, change nothing. Ask once whether a change must stay compatible with old data; for internal single-user products, keep no compatibility branch by default (adjust to your situation). If scope must grow, explain why first.
+- When a request involves copy, pages, modes or providers, state your understanding in one sentence and have the user confirm before the brief: web UI or chat report, standalone page or embedded in an existing page, global or under one mode, multiple providers coexisting or switching. By default providers coexist with no switching, and pages are standalone. This kind of misreading is the main source of past friction; one confirming sentence is cheaper than rework.
+- Do not introduce a new framework / dependency / architecture pattern unless the task clearly needs it and you explain the tradeoff.
+- For external facts such as filings, permissions, contracts or whether something is deployed, a tool not finding it does not mean it does not exist. Before a directional decision, have the user check the authoritative source, or check every reachable resource before concluding.
+- When proposing a configuration / entry-point solution, first give the simplest version that is explicit, has no implicit state and has the widest allowance, and state its risks. List narrowing and automation afterwards as options, not as the default.
+- Run authorized remote and deploy commands directly. Do not stop and ask the user to run them by hand; command form and permission config are in the current host entry file. Permissions follow the current host's actual rules; an allowance on another host is not authorization on this host. When the execution environment requires approval, follow its process.
+- Work that needs deterministic guarantees — counting, deduplication, sorting, batch validation, numeric calculation — uses scripts or deterministic tools, not LLM judgment. Judgment, classification and synthesis can be done by the LLM.
+- API keys / secrets go in one location outside the repo (e.g. `~/.config/<your-name>/secrets.env`). The repo `.env` holds no secrets. If that file is sourced by a shell, values containing characters such as `|`, `;` or spaces must be quoted.
 
-## 工程验证
+## Engineering verification
 
-- 完成修改后,优先运行项目已有的 test / build / lint。
-- 无法运行验证命令时,说明原因和未验证的风险。
-- 实施 subagent 的自述不作为完成依据;完成 = verifier 复核通过或主会话亲自跑过验证命令。
-- 不得基于 mock / fake provider / 只读代码报完成。涉及 LLM、外部 API、数据库的改动,必须走一次真实 provider 路径;用户可见的界面改动,必须用当前宿主可用的浏览器工具实际走通。
-- 报完成时明确列出:做了哪几项验证(真实调用 / 浏览器走查 / commit 已提交)、哪些没做及原因。没验证的不说「应该可以」。
+- After making changes, prefer running the project's existing test / build / lint.
+- If verification commands cannot run, state why and the unverified risk.
+- An implementer subagent's self-report is not evidence of completion; done = verifier check passed or the main session ran the verification commands itself.
+- Must not report done based on mocks / fake providers / reading code only. Changes involving an LLM, external API or database must go through a real provider path once. User-visible UI changes must be walked through for real with the browser tool available on the current host.
+- When reporting done, list explicitly which verifications were done (real call / browser walkthrough / commit made) and which were not and why. Do not say "should work" about anything unverified.
 
 ## Git
 
-- Commit message:英文,祈使句,首字母大写,≤72 字符,格式 `<type>: <summary>`(type: feat / fix / refactor / docs / test / chore)。
-- 根据项目进度可以主动创建 commit。
-- 不擅自发起外发通信(push、PR comment、消息、邮件)——需明确授权。
+- Commit message: English, imperative mood, capitalized, ≤72 characters, format `<type>: <summary>` (type: feat / fix / refactor / docs / test / chore).
+- You may create commits proactively based on project progress.
+- Do not start outbound communication (push, PR comment, messages, email) on your own — it needs explicit authorization.
 
-## 项目记忆与交接
+## Project memory and handoff
 
-- 项目进度、决策、经验存放在项目仓库,不写入本全局文件。
-- 项目级规则(项目根目录的 `AGENTS.md` / `.ai/`)优先于本文件。
-- 若项目存在 `.ai/` 目录,开始实质工作前先读 `.ai/PROGRESS.md`,相关时读 `DECISIONS.md` 和 `GOTCHAS.md`。
-- 阶段性任务(有实质代码/文件改动且已验证)结束后,由主会话主动调用 `wrap` skill 更新 `.ai/`;项目没有 `.ai/` 目录时,先从模板(本仓库 `templates/project/.ai/`,装好后在 `~/.ai/templates/`)复制 `PROGRESS.md` / `DECISIONS.md` / `GOTCHAS.md` 新建,再记录。纯对话、答疑、一两行琐碎修改、以及大任务的中间步骤不触发。
-- 多步骤长任务(预计跨多个 subagent 或多小时)每完成一个里程碑,立即在 `.ai/PROGRESS.md` 追加一行 checkpoint:做完了什么(含 commit sha)、下一步的具体动作、阻塞项。只追加不覆盖。目的是 API 中断或会话重开后,新会话读文件即可续做,不需要用户重新解释。
+- Project progress, decisions and lessons live in the project repository, not in this global file.
+- Project-level rules (`AGENTS.md` / `.ai/` at the project root) take precedence over this file.
+- If the project has a `.ai/` directory, read `.ai/PROGRESS.md` before substantive work, and `DECISIONS.md` and `GOTCHAS.md` when relevant.
+- After a phased task ends (substantive code/file changes, verified), the main session invokes the `wrap` skill on its own to update `.ai/`. If the project has no `.ai/` directory, first copy `PROGRESS.md` / `DECISIONS.md` / `GOTCHAS.md` from the templates (`templates/project/.ai/` in this repo, `~/.ai/templates/` after install), then record. Pure conversation, Q&A, trivial one- or two-line changes, and intermediate steps of a large task do not trigger it.
+- For long multi-step tasks (expected to span several subagents or several hours), after each milestone immediately append one checkpoint line to `.ai/PROGRESS.md`: what is done (with commit sha), the concrete next action, blockers. Append only, never overwrite. Purpose: after an API interruption or a session restart, a new session can continue by reading the file, without the user explaining again.

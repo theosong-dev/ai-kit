@@ -194,7 +194,7 @@ check_segment_argv() {
           ;;
       esac
       if [ "$destructive" -eq 1 ]; then
-        block "Blocked by global guard: 拦截 git reset --hard / git clean -f,会丢失未提交或已提交内容;确实需要请用户在终端用 ! 前缀执行。"
+        block "Blocked by global guard: git reset --hard / git clean -f is blocked because it discards uncommitted or committed work. If it is really needed, ask the user to run it in their terminal with the ! prefix."
       fi
     fi
 
@@ -202,14 +202,14 @@ check_segment_argv() {
     if [ $((has_commit + has_push + has_merge)) -gt 0 ]; then
       for ((i=0;i<n;i++)); do
         if [ "${toks[i]}" = "--no-verify" ]; then
-          block "Blocked by global guard: --no-verify 绕过 git 校验 hook,不允许使用。"
+          block "Blocked by global guard: --no-verify bypasses git verification hooks and is not allowed."
         fi
       done
     fi
     if [ "$has_commit" -eq 1 ]; then
       for ((i=0;i<n;i++)); do
         if [ "${toks[i]}" = "-n" ]; then
-          block "Blocked by global guard: git commit -n 绕过 pre-commit hook,不允许使用。"
+          block "Blocked by global guard: git commit -n bypasses the pre-commit hook and is not allowed."
         fi
       done
     fi
@@ -264,7 +264,7 @@ check_segment_argv() {
             +*)
               target="$(refspec_dest "$rs" "$current_branch")"
               if is_main "$target"; then
-                block "Blocked by global guard: 禁止 force push 到 main / master 分支。"
+                block "Blocked by global guard: force push to the main / master branch is not allowed."
               fi
               ;;
           esac
@@ -280,15 +280,15 @@ check_segment_argv() {
           for ((pi=1; pi<pcount; pi++)); do
             target="$(refspec_dest "${positionals[pi]}" "$current_branch")"
             if is_main "$target"; then
-              block "Blocked by global guard: 禁止 force push 到 main / master 分支。"
+              block "Blocked by global guard: force push to the main / master branch is not allowed."
             fi
           done
         else
           # 0 or 1 positional (nothing / remote only) -> current branch decides.
           if is_main "$current_branch"; then
-            block "Blocked by global guard: 当前分支为 $current_branch,禁止 force push 到 main / master。"
+            block "Blocked by global guard: the current branch is $current_branch; force push to main / master is not allowed."
           elif [ -z "$current_branch" ]; then
-            block "Blocked by global guard: 无法确定目标仓库分支(路径不存在或非 git 仓库),按安全策略禁止 force push。"
+            block "Blocked by global guard: cannot determine the target repository branch (path does not exist or is not a git repository); force push is blocked by the fail-safe policy."
           fi
         fi
       fi
@@ -318,7 +318,7 @@ check_segment_argv() {
       for tk in "${targets[@]}"; do
         [ -n "$tk" ] || continue
         if dangerous_target "$tk" "$seg_cwd" "$repo_root"; then
-          block "Blocked by global guard: 递归删除危险路径 '$tk',不允许使用。"
+          block "Blocked by global guard: recursive deletion of dangerous path '$tk' is not allowed."
         fi
         if dangerous_next_target "$tk"; then
           block "guard: refusing recursive rm of a Next.js .next directory (dev server may be using it); stop the dev server and mv it instead"

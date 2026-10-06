@@ -1,54 +1,54 @@
 # AGENTS.md
 
-本仓库由 AI coding agent 协作维护。任何 agent 开始工作前,先按下方协议读取项目记忆。
+This repository is maintained collaboratively by AI coding agents. Before starting any work, read the project memory following the protocol below.
 
-> CLAUDE.md 是指向本文件的 symlink。Claude Code、Codex 及其他 agent 读到的是同一份内容。
+> CLAUDE.md is a symlink to this file. Claude Code, Codex and other agents read the same content.
 
-## 项目简介
+## Project overview
 
-公开的跨 AI 工具协作工具包:项目记忆与全局入口模板(`templates/`)、共享 skill(`skills/`:wrap / distill)、Claude Code 的 agents 与 hooks(`claude/`)、mods(`mods/`)、经验文档(`docs/`)和安装脚本(`install.sh`、`scripts/`、`shell/`)。
+A public toolkit for cross-tool AI collaboration: project-memory and global entry-file templates (`templates/`), shared skills (`skills/`: wrap / distill), Claude Code agents and hooks (`claude/`), mods (`mods/`), guides (`docs/`), and install scripts (`install.sh`, `scripts/`, `shell/`).
 
-这是**公开仓库**:任何提交不得含私有项目名、绝对家目录路径(写 `~/…` 或 `$HOME`)、密钥或个人账号信息;提交前 grep 自查。
+This is a **public repository**: no commit may contain private project names, absolute home-directory paths (write `~/…` or `$HOME`), secrets, or personal account information. Grep before committing.
 
-## 构建 / 测试 / 运行
+## Build / test / run
 
-- 安装预演(不落盘):`bash install.sh --dry-run`
-- 隔离实装:`HOME=$(mktemp -d) bash install.sh`,再检查该临时 HOME 下的产物;不要在真实 HOME 上试新改动
-- 安装脚本测试(假 HOME,不碰真实家目录):`bash tests/install_test.sh`
-- hook 测试:`bash claude/hooks/guard_test.sh`
-- mod 测试:`claude plugin test ./mods/turn-signals`
-- skill 夹具:按 `skills/wrap/tests.md`、`skills/distill/tests.md` 里的命令跑
+- Install dry run (writes nothing): `bash install.sh --dry-run`
+- Isolated install: `HOME=$(mktemp -d) bash install.sh`, then inspect the artifacts under that temporary HOME; do not try new changes against the real HOME
+- Installer tests (fake HOME, never touches the real home directory): `bash tests/install_test.sh`
+- Hook tests: `bash claude/hooks/guard_test.sh`
+- Mod tests: `claude plugin test ./mods/turn-signals`
+- Skill fixtures: run the commands in `skills/wrap/tests.md` and `skills/distill/tests.md`
 
-## 开始工作前必读
+## Read before starting
 
-按顺序读取以下文件,几秒内恢复项目状态:
+Read these files in order to restore project state in seconds:
 
-1. `.ai/PROGRESS.md` —— 当前进度、上次做到哪、下一步、未完事项
-2. 本文件「构建 / 测试 / 运行」段
+1. `.ai/PROGRESS.md` — current progress, where the last session stopped, next steps, open items
+2. The "Build / test / run" section of this file
 
-相关时再读:
+Read when relevant:
 
-- `.ai/DECISIONS.md` —— 涉及架构、技术选型、产品方向的历史决策
-- `.ai/GOTCHAS.md` —— 踩过的坑、失败过的方案、不要重走的路
+- `.ai/DECISIONS.md` — past decisions on architecture, technology choices, product direction
+- `.ai/GOTCHAS.md` — pitfalls hit, failed approaches, roads not to retake
 
-## 工作协议
+## Working protocol
 
-- 修改范围严格围绕用户当前请求,不主动扩大 scope;需扩大先说明原因。
-- 改代码前先读现有实现,不基于文件名或猜测直接改。
-- 任务只有在实现**并验证**后才能标记完成;代码写完不等于完成。
+- Keep changes strictly within the user's current request; do not expand scope on your own. If scope needs to grow, explain why first.
+- Read the existing implementation before changing code; do not edit based on file names or guesses.
+- A task counts as done only once it is implemented **and verified**; written code is not done.
 
-## 项目记忆协议
+## Project memory protocol
 
-完成有意义的进展后,更新 `.ai/PROGRESS.md`:本次改了什么、当前状态、下一步建议、遗留问题。
+After meaningful progress, update `.ai/PROGRESS.md`: what changed, current status, suggested next steps, open issues.
 
-产生重要决策时,追加到 `.ai/DECISIONS.md`(只增不改):背景、选了什么、放弃的备选、原因。
+When an important decision is made, append it to `.ai/DECISIONS.md` (append-only): context, what was chosen, alternatives rejected, reasons.
 
-踩坑或方案失败时,追加到 `.ai/GOTCHAS.md`(只增不改):试了什么、为什么失败、以后该怎么做。
+When you hit a pitfall or an approach fails, append it to `.ai/GOTCHAS.md` (append-only): what was tried, why it failed, what to do instead.
 
-> 这三件事是跨会话延续的核心。不写进文件的进度,下次会话就丢了。
+> These three habits are what carry work across sessions. Progress not written to a file is lost by the next session.
 
-## 沟通
+## Communication
 
-- 默认中文回复;命令、路径、代码符号、框架名保留英文。
-- 汇报代码改动时说明改了哪些文件、为什么。
-- 遇到阻塞,说明阻塞点并给出最小下一步。
+- Reply in the language the user writes in; commands, paths, code symbols and framework names stay as written.
+- When reporting code changes, state which files changed and why.
+- When blocked, state the blocker and give the smallest next step.

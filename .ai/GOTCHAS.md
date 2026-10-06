@@ -1,28 +1,28 @@
-# 踩坑记录
+# Gotchas
 
-> 只增不改。"试过 X,失败了,原因是 Y,现在用 Z" —— 这类反向知识 agent 读代码反推不出来。
-> 写一次,永久避免下次会话重走老路。
+> Append-only. "Tried X, it failed because Y, now we use Z" — the kind of negative knowledge an agent cannot infer by reading the code.
+> Write it once and avoid retaking the old road in every future session.
 
-<!-- 新坑追加在最上面。模板: -->
+<!-- Append new gotchas at the top. Template: -->
 
-## 2026-10-06 旧 install.sh 用 `cp` 写 skill 文件会写穿软链接
+## 2026-10-06 The old install.sh wrote through symlinks when copying skill files with `cp`
 
-**试过:** 旧 `install.sh` 用 `cp` 把 wrap 的 `SKILL.md` 写到 `~/.claude/skills/wrap/SKILL.md`。
+**Tried:** The old `install.sh` used `cp` to write the wrap `SKILL.md` to `~/.claude/skills/wrap/SKILL.md`.
 
-**结果:** 该目录若已是指向共享 skill(`~/.agents/skills/wrap`)的软链接,`cp` 会顺着链接写穿,覆盖共享 skill 正文,Codex 侧也一起被改。
+**Result:** If that directory was already a symlink to the shared skill (`~/.agents/skills/wrap`), `cp` followed the link and overwrote the shared skill body, so the Codex side was changed too.
 
-**原因:** `cp` 写目标路径时跟随目录软链接,不会替换链接本身。
+**Cause:** `cp` follows directory symlinks when writing to the target path; it does not replace the link itself.
 
-**现在的做法:** 安装前先判断目标是否为软链接;skill 统一装到共享目录,宿主目录只建软链接,不往软链接目录里 `cp` 文件。
+**What to do now:** Check whether the target is a symlink before installing; install skills into the shared directory only, create symlinks in host directories, and never `cp` files into a symlinked directory.
 
 <!--
-## 简短标题
+## Short title
 
-**试过:** 做了什么。
+**Tried:** What was done.
 
-**结果:** 怎么失败的 / 什么现象。
+**Result:** How it failed / what was observed.
 
-**原因:** 为什么失败(如已定位)。
+**Cause:** Why it failed (if identified).
 
-**现在的做法:** 改用什么 / 怎么绕过。
+**What to do now:** What to use instead / how to work around it.
 -->

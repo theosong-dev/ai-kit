@@ -1,22 +1,29 @@
 #!/usr/bin/env bash
-# check_size.sh —— /wrap 的确定性体积/结构检查器。
+# check_size.sh -- deterministic size/structure checker for /wrap.
 #
-# 在项目根运行（默认读 cwd 下的 .ai/PROGRESS.md），也可传目录参数：
+# Run from the project root (reads .ai/PROGRESS.md under cwd by default), or pass a directory:
 #     bash check_size.sh [PROJECT_ROOT]
 #
-# 一次性输出并逐项判定 OK / OVER；任一超限或结构漂移 -> exit 1。
+# Prints every item with an OK / OVER verdict; any limit exceeded or structure drift -> exit 1.
 #
-# ---- 判定规则（数字与段名集中在此，SKILL.md 只引用本脚本，不再复述）----
-# 上限：
-#   PROGRESS 总行数（wc -l）           <= 120
-#   「当前状态」段非空、非注释内容行     <= 10
-#   「进度日志」条目数（列表项）         <= 10
-# 结构：必须恰好是模板六段，各出现一次、无缺失、无重复、无多余顶层 ## 段：
-#   当前状态 / 下一步 / 任务清单 / 遗留 / 用户纠正 / 进度日志
-#   （匹配按关键词：遗留 段实际标题是「遗留 / 待澄清」，用户纠正 段是「用户纠正（待蒸馏）」）
-# 超限/漂移的处置见 SKILL.md「体积检查」步骤（多余进度日志进 archive、多余段归位等）。
+# ---- Rules (numbers and section names live here only; SKILL.md refers to this script) ----
+# Limits:
+#   PROGRESS total lines (wc -l)                           <= 120
+#   "Current status" non-blank, non-comment content lines  <= 10
+#   "Progress log" entries (list items)                    <= 10
+# Structure: exactly the six template sections, each once; none missing, none duplicated,
+# no extra top-level ## section. Each logical section is recognized in English or Chinese:
+#   Current status                          / 当前状态
+#   Next steps                              / 下一步
+#   Task list                               / 任务清单
+#   Open issues                             / 遗留 (actual title: 遗留 / 待澄清)
+#   User corrections (pending distillation) / 用户纠正 (actual title: 用户纠正（待蒸馏）)
+#   Progress log                            / 进度日志
+# Matching is by keyword; English is case-insensitive and tolerates extra whitespace.
+# A logical section appearing twice (same language, or once in each language) is a duplicate.
+# How to fix OVER/DRIFT: see the "Size / structure check" step in SKILL.md.
 #
-# 兼容目标：macOS 自带 bash 3.2 + BSD/one-true awk、BSD sed/grep。
+# Compatibility: macOS stock bash 3.2 + BSD/one-true awk, BSD sed/grep.
 
 set -u
 
@@ -33,25 +40,32 @@ echo " file: $PROGRESS"
 echo "=================================================="
 
 if [ ! -f "$PROGRESS" ]; then
-  echo "  (文件不存在 —— 先按模板新建 .ai/PROGRESS.md)"
+  echo "  (file not found -- create .ai/PROGRESS.md from the template first)"
   exit 1
 fi
 
 TOTAL=$(wc -l < "$PROGRESS" | tr -d ' ')
 
-# 一次 awk 扫描：当前状态非空行数、进度日志条目数、六段各自出现次数、多余段清单
+# Single awk pass: Current status content lines, Progress log entries,
+# per-section occurrence counts, list of extra sections.
 OUT=$(LC_ALL=C awk '
+  function hit(key) { sec=key; cnt[key]++ }
   BEGIN { inc=0; sec="" }
   {
     line=$0
     if (substr(line,1,3)=="## ") {
       inc=0
-      if      (index(line,"当前状态")>0) { sec="cur";    c_cur++ }
-      else if (index(line,"下一步")>0)   { sec="next";   c_next++ }
-      else if (index(line,"任务清单")>0) { sec="tasks";  c_tasks++ }
-      else if (index(line,"遗留")>0)     { sec="legacy"; c_legacy++ }
-      else if (index(line,"用户纠正")>0) { sec="corr";   c_corr++ }
-      else if (index(line,"进度日志")>0) { sec="log";    c_log++ }
+      # English names: exact match after normalizing (trim, collapse spaces,
+      # lowercase, full-width parens -> ASCII, no spaces around parens).
+      # Chinese names: substring match (unchanged).
+      en=tolower(substr(line,4)); gsub(/[ \t\r]+/, " ", en); sub(/^ /, "", en); sub(/ $/, "", en)
+      gsub(/（/, "(", en); gsub(/）/, ")", en); gsub(/ ?\( ?/, "(", en); gsub(/ ?\) ?/, ")", en)
+      if      (index(line,"当前状态")>0 || en=="current status")   hit("cur")
+      else if (index(line,"下一步")>0   || en=="next steps")       hit("next")
+      else if (index(line,"任务清单")>0 || en=="task list")        hit("tasks")
+      else if (index(line,"遗留")>0     || en=="open issues")      hit("legacy")
+      else if (index(line,"用户纠正")>0 || en=="user corrections" || en=="user corrections(pending distillation)") hit("corr")
+      else if (index(line,"进度日志")>0 || en=="progress log")     hit("log")
       else { sec="extra"; print "EXTRA " substr(line,4) }
       next
     }
@@ -67,12 +81,12 @@ OUT=$(LC_ALL=C awk '
   END {
     print "CUR " curcount+0
     print "LOG " logcount+0
-    print "SEC cur "    c_cur+0
-    print "SEC next "   c_next+0
-    print "SEC tasks "  c_tasks+0
-    print "SEC legacy " c_legacy+0
-    print "SEC corr "   c_corr+0
-    print "SEC log "    c_log+0
+    print "SEC cur "    cnt["cur"]+0
+    print "SEC next "   cnt["next"]+0
+    print "SEC tasks "  cnt["tasks"]+0
+    print "SEC legacy " cnt["legacy"]+0
+    print "SEC corr "   cnt["corr"]+0
+    print "SEC log "    cnt["log"]+0
   }
 ' "$PROGRESS")
 
@@ -85,7 +99,8 @@ S_LEGACY=$(getsec legacy); S_CORR=$(getsec corr); S_LOG=$(getsec log)
 EXTRAS=$(echo "$OUT" | sed -n 's/^EXTRA //p')
 
 FAIL=0
-# st 只回显 OK/OVER，不改全局（避免在 $() 子shell 里改 FAIL 丢失）；FAIL 在父shell 里判定
+# st only echoes OK/OVER and never touches globals (a FAIL change inside $() would be lost);
+# FAIL is decided in the parent shell.
 st() { if [ "$1" -le "$2" ]; then echo "OK"; else echo "OVER"; fi; }
 
 ST_TOTAL=$(st "$TOTAL" "$MAX_TOTAL"); [ "$ST_TOTAL" = OK ] || FAIL=1
@@ -93,40 +108,41 @@ ST_CUR=$(st "$CUR" "$MAX_CUR");       [ "$ST_CUR" = OK ]   || FAIL=1
 ST_LOG=$(st "$LOG" "$MAX_LOG");       [ "$ST_LOG" = OK ]   || FAIL=1
 
 echo
-printf '  %-22s : %3s / %-3s  %s\n' "总行数"            "$TOTAL" "$MAX_TOTAL" "$ST_TOTAL"
-printf '  %-22s : %3s / %-3s  %s\n' "当前状态段内容行数" "$CUR"   "$MAX_CUR"   "$ST_CUR"
-printf '  %-22s : %3s / %-3s  %s\n' "进度日志条目数"      "$LOG"   "$MAX_LOG"   "$ST_LOG"
+printf '  %-28s : %3s / %-3s  %s\n' "Total lines"                  "$TOTAL" "$MAX_TOTAL" "$ST_TOTAL"
+printf '  %-28s : %3s / %-3s  %s\n' "Current status content lines" "$CUR"   "$MAX_CUR"   "$ST_CUR"
+printf '  %-28s : %3s / %-3s  %s\n' "Progress log entries"         "$LOG"   "$MAX_LOG"   "$ST_LOG"
 
-# ---- 六段结构 ----
+# ---- Six-section structure ----
 missing=""; dup=""
 check_sec() { # name count
-  if [ "${2:-0}" -eq 0 ]; then missing="$missing $1"; fi
-  if [ "${2:-0}" -gt 1 ]; then dup="$dup $1(x$2)"; fi
+  if [ "${2:-0}" -eq 0 ]; then missing="$missing; $1"; fi
+  if [ "${2:-0}" -gt 1 ]; then dup="$dup; $1 (x$2)"; fi
 }
-check_sec 当前状态 "$S_CUR"
-check_sec 下一步   "$S_NEXT"
-check_sec 任务清单 "$S_TASKS"
-check_sec 遗留     "$S_LEGACY"
-check_sec 用户纠正 "$S_CORR"
-check_sec 进度日志 "$S_LOG"
+check_sec "Current status"   "$S_CUR"
+check_sec "Next steps"       "$S_NEXT"
+check_sec "Task list"        "$S_TASKS"
+check_sec "Open issues"      "$S_LEGACY"
+check_sec "User corrections" "$S_CORR"
+check_sec "Progress log"     "$S_LOG"
+missing="${missing#; }"; dup="${dup#; }"
 
 STRUCT_OK="OK"
 if [ -n "$missing" ] || [ -n "$dup" ] || [ -n "$EXTRAS" ]; then STRUCT_OK="DRIFT"; FAIL=1; fi
-printf '  %-22s : %s\n' "六段结构" "$STRUCT_OK"
-echo "      缺失: ${missing:- 无}"
-echo "      重复: ${dup:- 无}"
+printf '  %-28s : %s\n' "Six-section structure" "$STRUCT_OK"
+echo "      missing: ${missing:-none}"
+echo "      duplicated: ${dup:-none}"
 if [ -n "$EXTRAS" ]; then
-  echo "      多余顶层 ## 段:"
+  echo "      extra top-level ## sections:"
   echo "$EXTRAS" | sed 's/^/        - /'
 else
-  echo "      多余顶层 ## 段: 无"
+  echo "      extra top-level ## sections: none"
 fi
 
 echo
 if [ "$FAIL" -eq 0 ]; then
-  echo "结论: OK —— 体积与结构均达标"
+  echo "Result: OK -- size and structure within limits"
   exit 0
 else
-  echo "结论: OVER/DRIFT —— 存在超限或结构漂移，按 SKILL.md「体积检查」步骤归位后再写更新"
+  echo "Result: OVER/DRIFT -- limit exceeded or structure drifted; fix per the \"Size / structure check\" step in SKILL.md, then write the update"
   exit 1
 fi

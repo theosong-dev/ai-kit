@@ -1,42 +1,48 @@
-# wrap 触发与执行测试
+# wrap trigger and execution tests
 
-7 条测试 prompt:3 normal / 2 edge / 2 out-of-scope。每条给「期望:触发 / 不触发」与「执行检查点」。
-用于回归验证 description 是否只在该触发时触发、执行是否遵守六段结构与体积检查。
+7 test prompts: 3 normal / 2 edge / 2 out-of-scope. Each lists "Expected: trigger / no trigger" and "Execution checkpoints".
+Used to regression-check that the description triggers only when it should and that execution follows the six-section structure and size check.
 
-## normal(应触发)
+## normal (should trigger)
 
-1. **「收尾吧」**
-   - 期望:触发
-   - 执行检查点:先区分进度 / 决策 / 踩坑 / 纠正四类;更新 PROGRESS 六段;写完用 skill 根的绝对路径跑 `bash "<SKILL_ROOT>/scripts/check_size.sh" "<PROJECT_ROOT>"`,exit 0 才算完成。
+1. **"Let's wrap up"** (also 「收尾吧」)
+   - Expected: trigger
+   - Checkpoints: first separate progress / decisions / gotchas / corrections; update the six PROGRESS sections; after writing, run `bash "<SKILL_ROOT>/scripts/check_size.sh" "<PROJECT_ROOT>"` by absolute skill-root path; done only on exit 0.
 
-2. **「结束前把进度整理一下」**
-   - 期望:触发
-   - 执行检查点:进度日志最上方加一行(日期 + 一句话);只勾选已端到端验证的任务;只有确有决策 / 踩坑 / 纠正时才动 DECISIONS / GOTCHAS / 用户纠正段。
+2. **"Tidy up the progress before we stop"**
+   - Expected: trigger
+   - Checkpoints: one line (date + one sentence) at the top of Progress log; check off only end-to-end-verified tasks; touch DECISIONS / GOTCHAS / User corrections only when there really was a decision / gotcha / correction.
 
-3. **「wrap up this session」**
-   - 期望:触发
-   - 执行检查点:更新顶部「最后更新」日期;本次用户纠正追加到「用户纠正(待蒸馏)」段;`check_size.sh` 报 OVER 就先归档再写,不硬塞。
+3. **"wrap up this session"**
+   - Expected: trigger
+   - Checkpoints: update the "Last updated" date at the top; append this session's user corrections to "User corrections (pending distillation)"; if `check_size.sh` reports OVER, archive first, then write -- do not cram.
 
-## edge(边界,仍应触发但要判断)
+## edge (borderline, should still trigger but needs judgment)
 
-4. **「更新下进度,不过这次没啥决策也没踩坑」**
-   - 期望:触发
-   - 执行检查点:只更新 PROGRESS,不硬写 DECISIONS / GOTCHAS;用户纠正段这次没内容就不动它(宁缺毋滥)。
+4. **"Update progress, though there were no decisions or gotchas this time"**
+   - Expected: trigger
+   - Checkpoints: update PROGRESS only; do not force DECISIONS / GOTCHAS entries; leave User corrections alone if there is nothing to add.
 
-5. **(在 PROGRESS 进度日志已有 10+ 条的仓里)「收尾一下」**
-   - 期望:触发
-   - 执行检查点:`check_size.sh` 会报「进度日志条目数 OVER」并 exit 1;按输出把最老的多余条目追加到 `.ai/archive/PROGRESS-YYYY-MM.md`(archive 留原文、本文件留压缩一行),再跑一次脚本确认 exit 0 才写更新。
+5. **(in a repo whose Progress log already has 10+ entries) "wrap up"**
+   - Expected: trigger
+   - Checkpoints: `check_size.sh` prints `Progress log entries : N / 10  OVER` and exits 1; per the output, append the oldest excess entries to `.ai/archive/PROGRESS-YYYY-MM.md` (archive keeps full text, this file keeps one compressed line), rerun the script and confirm exit 0 before writing the update.
 
-## out-of-scope(不应触发,或应转交)
+## out-of-scope (should not trigger, or should hand off)
 
-6. **「把这些反复出现的坑升成可复用规则」**
-   - 期望:不触发
-   - 执行检查点:这是 /distill 的职责;wrap 只如实记录到 GOTCHAS,不做提炼分流,应提示改用 /distill。
+6. **"Turn these recurring gotchas into reusable rules"**
+   - Expected: no trigger
+   - Checkpoints: that is /distill's job; wrap only records to GOTCHAS faithfully, does no distilling or routing, and should point to /distill.
 
-7. **「顺便把这个 bug 修了」**
-   - 期望:不触发
-   - 执行检查点:wrap 不改功能代码、不跑构建;只负责收尾记录。
+7. **"Fix this bug while you're at it"**
+   - Expected: no trigger
+   - Checkpoints: wrap does not change feature code or run builds; it only records the wrap-up.
 
-## 跨宿主回归
+## Script fixtures
 
-- Claude Code 与 Codex 各在 cwd 不等于目标项目根、目标路径含空格的 fixture 中执行;不依赖宿主注入的 skill 目录变量,检查同一脚本均收到正确项目根。
+- A PROGRESS using the Chinese template headings (`## 当前状态` ... `## 进度日志`) passes the same way as the English one: `Six-section structure : OK`, `Result: OK`, exit 0. Mixed headings (some English, some Chinese) also pass.
+- The same logical section appearing twice -- in one language, or once in English and once in Chinese -- reports `DRIFT` with `duplicated: <Section> (x2)`, exit 1.
+- English section names match exactly after normalization (trim, collapse spaces, case-insensitive; the corrections section also accepts `## User corrections` and ASCII or full-width parens with any spacing), so `##   CURRENT  Status` and `## User corrections （pending distillation）` still pass. An extra section whose title merely contains a section name -- e.g. `## Notes on progress log`, `## Open issues list`, `## Current status of CI`, `## User corrections policy` -- reports `DRIFT` under `extra top-level ## sections`, not `duplicated`, and its list items are not counted as Progress log entries. (Chinese names keep substring matching, so `## 进度日志备注` still counts as a duplicate 进度日志.)
+
+## Cross-host regression
+
+- Run Claude Code and Codex each in a fixture where cwd is not the target project root and the target path contains spaces; do not rely on a host-injected skill directory variable; check that the same script receives the correct project root.

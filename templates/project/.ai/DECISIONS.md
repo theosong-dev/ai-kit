@@ -1,22 +1,22 @@
-# 决策日志
+# Decision log
 
-> 只增不改。任何会影响后续工作的技术 / 产品决策记在这里。
-> 三个月后看到这个文件,要能立刻明白当初为什么这么选。
+> Append-only. Record every technical / product decision that affects later work here.
+> Three months from now, a reader of this file must see immediately why each choice was made.
 
-<!-- 新决策追加在最上面。模板: -->
+<!-- Add new decisions at the top. Template: -->
 
 <!--
-## YYYY-MM-DD 决策标题
+## YYYY-MM-DD Decision title
 
-**选了:** xxx
+**Chosen:** xxx
 
-**背景:** 当时面对什么问题 / 在什么之间选择。
+**Context:** What problem was faced / what the options were.
 
-**为什么:**
-- 理由 1
-- 理由 2
+**Why:**
+- Reason 1
+- Reason 2
 
-**放弃的备选:** yyy —— 放弃原因。
+**Rejected alternatives:** yyy — why it was rejected.
 
-**风险 / 已知代价:** 这个选择埋下的隐患(如有)。
+**Risks / known costs:** Hidden problems this choice introduces (if any).
 -->

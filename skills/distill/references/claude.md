@@ -1,10 +1,10 @@
-# Claude Code 分流与验收
+# Claude Code Routing and Verification
 
-仅在当前宿主是 Claude Code 时读取。
+Read only when the current host is Claude Code.
 
-- 生命周期动作:按现有配置使用 `settings.json` 的 hooks,或宿主支持的 skill / agent frontmatter hooks。
-- 禁止操作:评估 `permissions.deny` 或 `PreToolUse` hook;现有 `~/.claude/hooks/guard.sh` 可作为参考,先读实现再修改。不能假定文本规则能阻断工具。
-- 文件类型条件:可用 `.claude/rules/*.md` 的 `paths:`;目录要求优先共享子目录 `AGENTS.md`,确保 Claude 对应入口会读取它,必要时用子目录 `CLAUDE.md` 引用。
-- 权限配置仅在 Claude Code 生效;不要转换为 Codex 的已授权声明。
-- 信号日志追查原始会话记录(步骤 2):路径是 `<配置目录>/projects/<会话 cwd 里的 / 等非字母数字字符换成 ->/<session id>.jsonl`,配置目录是 `~/.claude` 或 `CLAUDE_CONFIG_DIR`;日志的 `account` 字段即配置目录名去掉开头的点(`claude-2` → `~/.claude-2`)。subagent 的记录在 `<session id>/subagents/agent-<agentId>.jsonl`。signals.sh 只给 session id 前 8 位,用 `ls <配置目录>/projects/*/<前8位>*.jsonl` 定位;只 grep 失败的命令或报错文本看前后片段,不通读。
-- 具体 schema/版本能力以本机 CLI 与当前官方说明为准。配置变更后用真实触发和匹配/不匹配命令案例验证;需要重载则重开会话,可用 `/doctor` 辅助诊断,但其通过不能代替拦截行为验证。没有执行的检查明确列为未验证。
+- Lifecycle actions: use hooks in `settings.json` per the existing configuration, or skill / agent frontmatter hooks supported by the host.
+- Forbidden operations: evaluate `permissions.deny` or a `PreToolUse` hook; an existing `~/.claude/hooks/guard.sh` can serve as a reference, but read its implementation before modifying it. Do not assume text rules can block tools.
+- File-type conditions: `.claude/rules/*.md` with `paths:` can be used; for directory requirements prefer a shared subdirectory `AGENTS.md`, make sure Claude's corresponding entry point reads it, and reference it from a subdirectory `CLAUDE.md` if needed.
+- Permission configuration only takes effect in Claude Code; do not convert it into an already-authorized declaration for Codex.
+- Tracing raw transcripts from the signal log (step 2): the path is `<config dir>/projects/<session cwd with / and other non-alphanumeric characters replaced by ->/<session id>.jsonl`, where the config dir is `~/.claude` or `CLAUDE_CONFIG_DIR`; the log's `account` field is the config dir name without the leading dot (`claude-2` -> `~/.claude-2`). Subagent transcripts are at `<session id>/subagents/agent-<agentId>.jsonl`. signals.sh gives only the first 8 characters of the session id; locate the file with `ls <config dir>/projects/*/<first 8 chars>*.jsonl`; grep only for the failed command or error text and read the surrounding excerpt, do not read it in full.
+- Exact schema / version capabilities follow the local CLI and current official documentation. After a configuration change, verify with a real trigger and with matching / non-matching command cases; if a reload is needed, start a new session. `/doctor` can help diagnose, but passing it does not replace verifying the blocking behavior. Explicitly list any check not run as unverified.

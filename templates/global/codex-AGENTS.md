@@ -1,36 +1,36 @@
-# Codex 全局入口
+# Codex global entry file
 
-> 模板:安装到 `~/.codex/AGENTS.md`。结构与 Claude Code 入口(`claude-CLAUDE.md`)对称,只放 Codex 专属的执行配置。
+> Template: install to `~/.codex/AGENTS.md`. Mirrors the structure of the Claude Code entry file (`claude-CLAUDE.md`) and holds only Codex-specific execution config.
 
-开始工作前先读取 `~/.ai/AGENTS.md`,遵守其中共享偏好和工作协议;本文件补充 Codex 的执行配置。项目规则仍按共享协议优先。
+Before starting work, read `~/.ai/AGENTS.md` and follow its shared preferences and working protocol. This file adds Codex execution config. Project rules still take precedence per the shared protocol.
 
-## 实施与验收
+## Implementation and verification
 
-- 主会话负责规划、讨论、方案与最终裁决;具体实施交给原生 subagent 或独立 worker。主会话模型保持不动。
-- 选实施模型与 effort 看规格清晰度、隐藏 edge case 与改错代价,不看任务大小:常规跨文件实施用当前宿主可用的最新模型、effort `medium`;有判断空间、改错代价高或 edge case 多时用 `high`,明确困难用 `xhigh`。同一问题失败两次就回主会话重新定方案,不再加档。
-- 若另有更便宜的外部 worker(自备的 CLI),可把简单明确、可检查的机械实施或简单验收交给它;任务文件写清背景、目标、约束、相关文件与验收标准,它不继承主会话历史。默认只读,需要改文件时显式授权写入;检查退出码与返回结果,调用成功不等于验收通过。
-- 派单前先写清隐含假设与可能遗漏的 edge case,并给实施者自检手段(能跑的测试、构建或命令)——一次检查只花一轮,升档是每轮都多想。
-- 独立 verifier 保持只读,只接收任务要求、待验收 diff/文件和验收标准,不接收实施历史或实施结论。复杂验收用当前最新模型、effort `high` 的原生 subagent,创建时不继承会话历史(工具支持 `fork_turns` 时设为 `none`);需要显式指定 model 与 `reasoning_effort` 时,不要用 full-history fork 加 override。
-- worker 调用失败或结果不满足要求时,先依据错误修正任务描述或补足上下文,再决定是否重试或换模型;不得盲目重试,也不得把失败或未验收结果标记为完成。
-- 修 bug 先复现再改,适用时确认回归测试在未修复代码上会失败;检查须覆盖改动的真实路径,语法检查不等于功能验证,命令未启动不算已运行,无法运行时说明限制。
-- 用户可见的界面改动使用当前可用的 Browser 或 Chrome skill,并读取其说明,在浏览器实际走通。
-- 不要把 Claude 的模型名或 agent 文件当作 Codex 配置。
-- 微小修改例外(纯对话、读代码答疑、一两行的琐碎修改)按共享协议由主会话直接处理,不派 worker、不派 verifier。
+- The main session owns planning, discussion, solution design and final calls; concrete implementation goes to native subagents or independent workers. Keep the main session model unchanged.
+- Choose the implementer model and effort by spec clarity, hidden edge cases and cost of error, not by task size: routine cross-file implementation uses the latest model available on the current host with effort `medium`; use `high` when there is room for judgment, a high cost of error or many edge cases, and `xhigh` for clearly hard tasks. If the same problem fails twice, return to the main session to redo the plan; do not move up another tier.
+- If a cheaper external worker (your own CLI) is available, you may hand it simple, clear, checkable mechanical implementation or simple verification. The task file states context, goal, constraints, relevant files and verification criteria; the worker does not inherit main session history. Read-only by default; grant write access explicitly when it must change files. Check exit codes and returned results; a successful call is not a passed verification.
+- Before a brief, write out implicit assumptions and possibly missed edge cases, and give the implementer a self-check (a test, build or command it can run) — one check costs one round; a higher tier costs more thinking every round.
+- The independent verifier stays read-only and receives only the task requirements, the diff/files to verify and the verification criteria, never implementation history or conclusions. Complex verification uses a native subagent on the current latest model with effort `high`, created without session history (set `fork_turns` to `none` when the tool supports it). When model and `reasoning_effort` must be set explicitly, do not use a full-history fork plus override.
+- When a worker call fails or the result does not meet requirements, first fix the task description or add context based on the error, then decide whether to retry or switch models. Must not retry blindly, and must not mark failed or unverified results as done.
+- To fix a bug, reproduce it first; where applicable, confirm the regression test fails on unfixed code. Checks must cover the real path of the change: a syntax check is not functional verification, a command that never started has not run, and when something cannot run, state the limitation.
+- For user-visible UI changes, use the currently available Browser or Chrome skill, read its instructions, and walk through the change in a real browser.
+- Do not treat Claude model names or agent files as Codex config.
+- Trivial-change exception (pure conversation, code-reading Q&A, trivial one- or two-line changes): per the shared protocol, the main session handles these directly, with no worker and no verifier.
 
-## 模型解析
+## Model resolution
 
-- 每次派单从当前宿主提供的可用模型列表 / 工具 schema 确认最新可调用的完整模型 ID 及其 effort 支持;不写死版本号,不假设存在 `latest` 之类的别名。
-- 旧模型仍在可用列表里不代表它是最新版本;比较版本号按数值而非字符串比较。
-- 可用列表缺失时不得猜测模型 ID,明确说明并使用当前宿主默认模型。
+- For every brief, confirm the latest callable full model ID and its effort support from the available model list / tool schema provided by the current host. Do not hardcode version numbers, and do not assume aliases such as `latest` exist.
+- An old model still being in the available list does not make it the latest; compare version numbers numerically, not as strings.
+- If the available list is missing, must not guess model IDs; say so explicitly and use the current host's default model.
 
-## 权限与执行
+## Permissions and execution
 
-- 使用 Codex 当前沙箱、审批与 rules 配置。Claude 的 `permissions.allow` / `permissions.deny` 不会在 Codex 生效,不得据此声称命令已放行。
-- 已获授权的远程与部署任务继续执行;需要执行环境升级审批时通过工具申请,不要转交用户手动运行。
-- 不因读取本文件自动创建 hooks 或放宽权限。`~/.codex/rules/*.rules` 管理沙箱外命令策略,不等价于 Claude 的 deny 列表;hooks 按当前 Codex 支持与信任要求配置。
+- Use Codex's current sandbox, approval and rules config. Claude's `permissions.allow` / `permissions.deny` do not apply in Codex; must not claim a command is allowed based on them.
+- Continue authorized remote and deploy tasks. When the execution environment requires escalated approval, request it through the tool; do not hand the command to the user to run by hand.
+- Do not create hooks or loosen permissions just because you read this file. `~/.codex/rules/*.rules` governs commands outside the sandbox and is not equivalent to Claude's deny list; configure hooks according to current Codex support and trust requirements.
 
-## 共享 skills
+## Shared skills
 
-- `wrap`、`distill` 共用 `~/.agents/skills/` 下正文,不维护同名旧版 `~/.codex/skills/wrap`。
-- 按本次读取的 `SKILL.md` 所在目录绝对定位脚本,显式传目标项目根;不依赖宿主环境变量。
-- 更新这些文件后,已读过旧内容的会话应重读对应文件,或在新会话使用。
+- `wrap` and `distill` share the body under `~/.agents/skills/`; do not maintain an older same-named `~/.codex/skills/wrap`.
+- Locate scripts by absolute path from the directory of the `SKILL.md` you read this time, and pass the target project root explicitly; do not rely on host environment variables.
+- After these files are updated, sessions that already read the old content should reread the relevant file, or use a new session.

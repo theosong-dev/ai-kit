@@ -1,45 +1,45 @@
-# 项目进度
+# Project progress
 
-> 跨会话 handoff 主文件。每次会话开头读它,结束前更新它。
-> 最后更新:<!-- YYYY-MM-DD,由 agent 填 -->
+> Main cross-session handoff file. Read it at the start of every session; update it before the session ends.
+> Last updated: <!-- YYYY-MM-DD, filled in by the agent -->
 >
-> **体积上限(/wrap 用 `wc -l` / `grep -c` 强制,不靠目测):**
-> 全文 ≤ 120 行;「当前状态」≤ 10 行;「进度日志」只留最近 10 条。
-> 超限:把「进度日志」多出的条目**追加**到 `.ai/archive/PROGRESS-YYYY-MM.md`
-> (按归档时年月命名,目录不存在就建),原文进 archive,本文件只留压缩后的一行。
-> 结构固定为下面六段,发现漂移(多余的顶层日期小节等)先归位再更新。
-> 理由:这是每次会话开头都读的 handoff 文件,体积直接吃 context;历史细节 git log 和 archive 里都有。
+> **Size limits (/wrap enforces them with `wc -l` / `grep -c`, not by eye):**
+> Whole file ≤ 120 lines; "Current status" ≤ 10 lines; "Progress log" keeps only the latest 10 entries.
+> Over the limit: **append** the extra "Progress log" entries to `.ai/archive/PROGRESS-YYYY-MM.md`
+> (named by the year and month of archiving; create the directory if missing). The original text goes to the archive; this file keeps only a compressed one-line summary.
+> The structure is fixed to the six sections below. If it drifts (extra top-level date sections, etc.), restore the structure before updating.
+> Why: this handoff file is read at the start of every session, so its size directly consumes context. Historical detail lives in git log and the archive.
 
-## 当前状态
+## Current status
 
-<!-- ≤10 行。现在整体在什么阶段、卡在哪。保留正在进行的事项和警示状态
-     (未 push / 未部署 / 未真机验证 / 严禁发版),去掉实现细节(细节在 archive 和 commit 里)。 -->
+<!-- ≤10 lines. What stage the work is in overall and where it is stuck. Keep in-progress items and warning states
+     (not pushed / not deployed / not verified on a real device / release forbidden). Drop implementation detail (it lives in the archive and commits). -->
 
-## 下一步
+## Next steps
 
-<!-- 1-3 条具体的、可立刻动手的事。不是模糊目标。 -->
-<!-- 例:实现人体检测 pipeline 的后处理 NMS 部分 -->
+<!-- 1-3 concrete items you can start on immediately. Not vague goals. -->
+<!-- Example: implement the NMS post-processing step of the person detection pipeline -->
 
-## 任务清单
+## Task list
 
-<!-- 只勾端到端验证过的。代码写完不算完成。 -->
+<!-- Check off only items verified end to end. Code written is not done. -->
 
-- [ ] 任务 A
-  - [ ] 子任务 A1
-  - [ ] 子任务 A2  ← 当前
-- [ ] 任务 B
+- [ ] Task A
+  - [ ] Subtask A1
+  - [ ] Subtask A2  ← current
+- [ ] Task B
 
-## 遗留 / 待澄清
+## Open issues
 
-<!-- 卡住的、需要用户决定的、依赖外部的事项。每项一行,长了就把原文移进 archive。 -->
+<!-- Items that are stuck, need a user decision, or depend on something external. One line each; when one grows long, move the original text to the archive. -->
 
-## 用户纠正（待蒸馏）
+## User corrections (pending distillation)
 
-<!-- 本会话中用户对 agent 做法的纠正,每条一行:日期 —— 用户纠正了什么 → 应该怎么做。
-     由 /distill 消费后清空(内容移进 archive)。没有就留空。 -->
+<!-- User corrections to the agent's approach in this session, one per line: date — what the user corrected → what to do instead.
+     Cleared after /distill consumes them (content moves to the archive). Leave empty if none. -->
 
-## 进度日志
+## Progress log
 
-<!-- 倒序,新的在上。每条一行:日期 + 做了什么。只留最近 10 条,更早的进 archive。 -->
+<!-- Reverse chronological, newest first. One line each: date + what was done. Keep only the latest 10; older entries go to the archive. -->
 
-- YYYY-MM-DD ——
+- YYYY-MM-DD —

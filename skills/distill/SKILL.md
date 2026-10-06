@@ -1,64 +1,77 @@
 ---
 name: distill
-description: "把攒下来的坑和用户纠正提炼成可复用规则、按「加载通道」分流落地。用户说「蒸馏」「distill」「整理规则」「把经验沉淀成规则」,或 /wrap 提示未蒸馏经验已积累时触发。先跑 pending.sh 收集 .ai/GOTCHAS / DECISIONS 未标记条目 + PROGRESS「用户纠正(待蒸馏)」,signals.sh 补信号日志跨会话重复失败,过进入门槛(重复≥2 次或代价高)后分流到 共享规则 / skill / 当前宿主的 hook 或权限机制,并做减法删旧规则,落地须在用户已批准范围内。Not for: 记录本次进度(用 /wrap)、直接改代码或跑测试。"
+description: "Distill accumulated gotchas and user corrections into reusable rules and route each one to the right loading channel. Trigger when the user says \"distill\", \"turn lessons into rules\", \"consolidate rules\", or when /wrap reports that undistilled lessons have piled up; the Chinese triggers 「蒸馏」「整理规则」 work too. First run pending.sh to collect unmarked .ai/GOTCHAS / DECISIONS entries plus the PROGRESS \"User corrections (pending distillation)\" section, and signals.sh to add cross-session repeated failures from the signal log; candidates that pass the entry threshold (repeated >=2 times or high cost) are routed to shared rules / a skill / the current host's hook or permission mechanism, old rules are pruned, and changes land only within the scope the user has approved. Not for: recording this session's progress (use /wrap), changing code directly, or running tests."
 ---
 
-# 经验蒸馏协议
+# Lesson Distillation Protocol
 
-记忆体系的**外层改进循环**:/wrap 如实记录发生了什么(内层),/distill 把重复或高代价的经验升成一条可复用规则,并放到正确的加载通道,减少下次重蹈覆辙。官方经验:规则要按加载通道分流(「每次 X 就 Y」是 hook 不是 prompt),蒸馏必须有减法。
+The **outer improvement loop** of the memory system: /wrap faithfully records what happened (inner loop); /distill promotes repeated or costly lessons into a reusable rule and puts it in the right loading channel, so the same mistake is less likely next time. Official guidance: route rules by loading channel ("every time X, do Y" is a hook, not a prompt), and distillation must include subtraction.
 
-## 执行步骤
+## Steps
 
-1. **收集输入(确定性,不靠肉眼)**:以本次读取的 `SKILL.md` 所在目录为 skill 根目录,执行 `bash "<SKILL_ROOT>/scripts/pending.sh" "<PROJECT_ROOT>"`(占位符替换为实际绝对路径,分别加引号,显式传目标项目根;不依赖 cwd 或宿主注入的环境变量),以其输出为准——未蒸馏的 GOTCHAS / DECISIONS 标题、PROGRESS「用户纠正(待蒸馏)」、标题 2-gram 重复线索、落点文件现有规则规模,以及第 6 部分的规则带 / 不带来由条数。再执行 `bash "<SKILL_ROOT>/scripts/signals.sh" "<PROJECT_ROOT>"`(默认最近 30 天,`--days N` 可调),得到信号日志里本项目**跨 ≥2 个会话**重复的同类工具失败,以及按 `cat` 分组的 verifier 验收线索;宿主参考写明无此输入时跳过,日志缺失时脚本只打印一行说明,照常继续。两类重复线索都是**线索不是判定**,自己再核一遍。
+1. **Collect inputs (deterministically, not by eye)**: Treat the directory containing the `SKILL.md` you read this time as the skill root and run `bash "<SKILL_ROOT>/scripts/pending.sh" "<PROJECT_ROOT>"` (replace the placeholders with real absolute paths, quote each one, and pass the target project root explicitly; do not rely on cwd or host-injected environment variables). Its output is authoritative: undistilled GOTCHAS / DECISIONS titles, the PROGRESS "User corrections (pending distillation)" section, title repetition hints (shared CJK 2-grams or shared Latin words), the current rule volume of the target files, and, in section [6], the counts of rules with / without a rationale. Then run `bash "<SKILL_ROOT>/scripts/signals.sh" "<PROJECT_ROOT>"` (last 30 days by default, adjustable with `--days N`) to get same-kind tool failures in this project's signal log that repeat **across >=2 sessions**, plus verifier review hints grouped by `cat`. Skip it when the host reference says this input is unavailable; if the log is missing, the script prints a single explanatory line and you continue as usual. Both kinds of repetition hints are **hints, not verdicts**; double-check them yourself.
 
-2. **进入门槛(先筛掉不该升的)**。候选必须满足其一:
-   - 同一问题**重复出现 ≥2 次**(pending.sh 的 2-gram 线索 + 自行判断;signals.sh 列出的跨 ≥2 个会话同类失败也算;其 verifier 验收线索里同一 `cat` 跨 ≥2 个会话也算,这类优先改派单模板 / 实施 agent 正文 / 能自动拦截的检查,而非再加文字规则);
-   - 或单次**代价很高**(数据丢失 / 发错版 / 安全边界 / 动了生产数据)。
+2. **Entry threshold (filter out what should not be promoted first)**. A candidate must meet one of:
+   - The same problem **occurred >=2 times** (pending.sh 2-gram hints + your own judgment; same-kind failures across >=2 sessions listed by signals.sh also count; so does the same `cat` across >=2 sessions in its verifier review hints, and for these, prefer changing the dispatch template / the implementer agent body / a check that can block automatically over adding another text rule);
+   - Or a single occurrence was **very costly** (data loss / wrong version shipped / security boundary / production data touched).
 
-   每条候选必须能写出一句**「本可防住哪次真实错误」**并引用来源条目标题;写不出这句就不提。一次蒸馏通常 1-3 条,宁少勿多。
+   Each candidate must come with one sentence stating **"which real mistake this would have prevented"**, citing the source entry title; if you cannot write that sentence, do not propose it. One distillation usually yields 1-3 rules; fewer is better.
 
-   信号日志只说明重复了,不说明为什么:升规则前只对 signals.sh 样例里的那几个会话,按宿主参考找到原始会话记录,看失败前后片段弄清原因;不通读全部会话记录。原因说不清的不升。
+   The signal log only shows that something repeated, not why: before promoting a rule, take only the sessions in the signals.sh samples, locate their raw transcripts per the host reference, and read the excerpts before and after the failure to understand the cause; do not read every transcript in full. If the cause is unclear, do not promote.
 
-3. **按加载通道分流**(不是所有规则都进 AGENTS.md):
+3. **Route by loading channel** (not every rule goes into AGENTS.md):
 
-   先识别当前执行宿主,只读取对应参考:[Claude Code](references/claude.md) 或 [Codex](references/codex.md)。若宿主无法确定,共享落点可继续分析,宿主配置落地前需确认。
+   First identify the current host and read only its reference: [Claude Code](references/claude.md) or [Codex](references/codex.md). If the host cannot be determined, analysis of shared targets may continue, but confirm before landing any host configuration.
 
-   | 规则形态 | 落点通道 |
+   | Rule shape | Target channel |
    | --- | --- |
-   | 每次 X 都要 Y / 某事必须发生 | 当前宿主支持的 hook,按对应参考验证 |
-   | 禁止 X | 当前宿主的权限机制或工具拦截,按对应参考判断覆盖范围 |
-   | 多步流程 / 清单 | 共享 skill(`.agents/skills/<name>/SKILL.md`,全局用 `~/.agents/skills/`) |
-   | 只对某目录生效 | 子目录 `AGENTS.md`;文件类型条件按宿主参考处理 |
-   | 常驻事实 / 不变量 / 项目 gotcha | 项目 `AGENTS.md` |
-   | 跨项目且多项目已验证 | `~/.ai/AGENTS.md` |
+   | Every time X, do Y / something must happen | A hook supported by the current host, verified per its reference |
+   | Never X | The current host's permission mechanism or tool interception, with coverage judged per its reference |
+   | Multi-step procedure / checklist | Shared skill (`.agents/skills/<name>/SKILL.md`, global: `~/.agents/skills/`) |
+   | Applies only to one directory | Subdirectory `AGENTS.md`; file-type conditions handled per the host reference |
+   | Standing fact / invariant / project gotcha | Project `AGENTS.md` |
+   | Cross-project and verified in multiple projects | `~/.ai/AGENTS.md` |
 
-   共享文件会影响两个宿主;宿主配置只影响对应工具。提案中注明影响范围,不把一个宿主的权限放行或模型行为推广到另一个。
+   Shared files affect both hosts; host configuration affects only that tool. State the scope of impact in the proposal, and do not generalize one host's permission allowances or model behavior to the other.
 
-   信号日志里重复的 `refused`(没执行就被拒)与「禁止 X」同属权限问题:该做的走当前宿主权限机制放行,不该做的换成已放行的做法,不加「别再试 X」式 prompt 规则。
+   Repeated `refused` entries in the signal log (rejected without running) are a permission issue, like "Never X": if the action should be allowed, allow it through the current host's permission mechanism; if not, switch to an already-allowed approach. Do not add "don't try X again"-style prompt rules.
 
-4. **减法(和新增一起批)**。扫落点文件(项目 `AGENTS.md`、`~/.ai/AGENTS.md`)现有规则,标出候选删除项:
-   - 已过时、被其他机制覆盖的规则或旧模型 workaround,但必须说明依据。
-   - 删除行为约束前,须有代表性任务证据证明不加载该规则仍满足要求;没有证据先保留,将验证列为下一步。某个模型上的验证结果不自动推广到另一个模型。
-   - **换模型复查**:来由里的模型名与当前执行模型不同的规则,以及没有来由、看起来在补偿模型行为缺陷的规则,列入「待复查」清单随提案给用户(pending.sh 第 6 部分给出带 / 不带来由的条数)。复查不等于删除,删除仍受上一条约束。
+4. **Subtraction (reviewed together with additions)**. Scan the existing rules in the target files (project `AGENTS.md`, `~/.ai/AGENTS.md`) and mark deletion candidates:
+   - Rules that are outdated, covered by another mechanism, or old model workarounds, but the basis must be stated.
+   - Before deleting a behavioral constraint, there must be evidence from representative tasks that requirements are still met without loading the rule; without evidence, keep it and list verification as a next step. Verification results on one model do not automatically carry over to another model.
+   - **Re-review on model change**: rules whose rationale names a model different from the current one, and rules with no rationale that appear to compensate for model behavior flaws, go on a "to re-review" list attached to the proposal for the user (pending.sh section [6] gives the counts with / without a rationale). Re-review is not deletion; deletion is still bound by the previous point.
 
-   删除项与新增提案一起审阅,不按固定比例删规则。
+   Deletions are reviewed together with new proposals; do not delete rules by a fixed ratio.
 
-5. **输出最小 diff 提案**。每条一段,写明:来源条目 → 加 / 改 / 删的原文 → 落点通道 → 本可防住的真实错误 → **验证方法**一句(跑什么命令、应得什么结果)。新增或修改的规则末尾带一句来由,在规则文件里与规则同一行,尽量短,含年月、来源(GOTCHAS / DECISIONS 标题、用户纠正日期或「信号日志 N 会话 M 次」)、执行本次蒸馏的模型名(不知道写「模型未知」),如 `(来由:2026-10,GOTCHAS「xxx」+ 信号日志 3 会话 5 次;Fable 5.1)`。**未获授权的具体变更先展示,逐条批准后才写文件。已有明确批准覆盖的提案直接落实,不重复请求确认;授权不扩大执行环境权限。**
+5. **Output a minimal diff proposal**. One paragraph per item, stating: source entry -> exact text added / changed / deleted -> target channel -> the real mistake it would have prevented -> one sentence on **how to verify** (what command to run, what result to expect). Every new or changed rule ends with a one-line rationale, on the same line as the rule in the rule file, as short as possible, containing year-month, source (GOTCHAS / DECISIONS title, user correction date, or "signal log N sessions M times"), and the name of the model running this distillation ("model unknown" if not known), e.g. `(rationale: 2026-10, GOTCHAS "xxx" + signal log 3 sessions 5 times; <model name>)`. **Show unauthorized concrete changes first, and write files only after each is approved. Proposals already covered by explicit approval are applied directly without asking again; authorization does not expand execution-environment permissions.**
 
-6. **批准后落地**:
-   - 应用批准的 diff(含删除),规则的来由一并写入;落点是 hook / 脚本 / skill 时,来由写成该文件里的注释。宿主配置按对应参考落地,不默认都修改 `settings.json`。
-   - 消费过的 GOTCHAS / DECISIONS 条目在**标题下一行**打 `<!-- distilled YYYY-MM-DD -->`(本次明确决定跳过的打 `<!-- distilled YYYY-MM-DD skipped -->`;尚未评估、未批准或留待观察的条目不打标记);把该条的「验证方法」一句写在 distilled 标记之后。
-   - 只将本次已处理的 PROGRESS「用户纠正(待蒸馏)」条目原文移入 `.ai/archive/PROGRESS-YYYY-MM.md`(目录不存在就建),保留尚未评估、未批准或留待观察的条目;不清空整个段。明确决定跳过的条目也需记录跳过理由。
-   - PROGRESS「进度日志」加一行:「蒸馏:N 条 → 落点(文件名)」。
+6. **Land after approval**:
+   - Apply the approved diff (including deletions) and write each rule's rationale with it; when the target is a hook / script / skill, write the rationale as a comment in that file. Land host configuration per the corresponding reference; do not assume every change belongs in `settings.json`.
+   - For consumed GOTCHAS / DECISIONS entries, add `<!-- distilled YYYY-MM-DD -->` on the **line right below the title** (entries explicitly skipped this time get `<!-- distilled YYYY-MM-DD skipped -->`; entries not yet evaluated, not approved, or left for observation get no marker); write the entry's "how to verify" sentence after the distilled marker.
+   - Move only the PROGRESS "User corrections (pending distillation)" entries processed this time, verbatim, into `.ai/archive/PROGRESS-YYYY-MM.md` (create the directory if missing); keep entries not yet evaluated, not approved, or left for observation; do not clear the whole section. Explicitly skipped entries also need a recorded reason for skipping.
+   - Add one line to the PROGRESS "Progress log": "Distilled: N rules -> target (file names)".
 
-## 注意
+## Memory file section names
 
-- 蒸馏是**提炼**不是搬运:把一次具体踩坑抽象成下次照着做的一句话,不照抄 GOTCHAS 原文进 AGENTS.md。
-- 改了宿主配置后,按对应参考做实际生效验证;不能只改文件就报完成。已有授权的检查自行完成,仍需宿主信任批准时明确指出具体待批动作。
-- 跨项目级(`~/.ai/AGENTS.md`)最谨慎:一条经验没在多个项目成立,就不写进去。
-- 不确定该不该升,倾向不升,留在 GOTCHAS 里等它再出现一次。
+This skill uses English section titles; the Chinese names are recognized too:
 
-## 附带脚本
+| English | Chinese |
+| --- | --- |
+| `## Current status` | `## 当前状态` |
+| `## Next steps` | `## 下一步` |
+| `## Task list` | `## 任务清单` |
+| `## Open issues` | `## 遗留 / 待澄清` |
+| `## User corrections (pending distillation)` | `## 用户纠正（待蒸馏）` |
+| `## Progress log` | `## 进度日志` |
 
-- `scripts/pending.sh [PROJECT_ROOT]` —— 步骤 1 的确定性输入收集器,bash + awk,显式传目标项目根。
-- `scripts/signals.sh <PROJECT_ROOT> [--days N]` —— 步骤 1 的跨会话重复线索(同类工具失败 + verifier 验收问题按类别统计),读 turn-signals 信号日志(`TURN_SIGNALS_PATH` 可覆盖路径),bash + python3;分组与归一化规则见脚本头注释。
+## Notes
+
+- Distillation is **abstraction**, not copying: turn one concrete mishap into a one-sentence rule to follow next time; do not paste GOTCHAS text verbatim into AGENTS.md.
+- After changing host configuration, verify it actually takes effect per the corresponding reference; editing the file alone does not count as done. Run the checks you are already authorized to run yourself; where host trust approval is still needed, name the specific action awaiting approval.
+- Be most cautious at the cross-project level (`~/.ai/AGENTS.md`): if a lesson has not held in multiple projects, do not write it there.
+- When unsure whether to promote, lean toward not promoting; leave it in GOTCHAS and wait for it to recur.
+
+## Bundled scripts
+
+- `scripts/pending.sh [PROJECT_ROOT]` — deterministic input collector for step 1, bash + awk, with the target project root passed explicitly.
+- `scripts/signals.sh <PROJECT_ROOT> [--days N]` — cross-session repetition hints for step 1 (same-kind tool failures + verifier review issues counted by category), reading the turn-signals signal log (path overridable via `TURN_SIGNALS_PATH`), bash + python3; grouping and normalization rules are in the script's header comment.

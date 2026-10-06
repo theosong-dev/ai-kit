@@ -1,36 +1,46 @@
-# 决策日志
+# Decision log
 
-> 只增不改。任何会影响后续工作的技术 / 产品决策记在这里。
-> 三个月后看到这个文件,要能立刻明白当初为什么这么选。
+> Append-only. Record any technical / product decision that affects later work.
+> Three months from now, this file should make it immediately clear why a choice was made.
 
-<!-- 新决策追加在最上面。模板: -->
+<!-- Append new decisions at the top. Template: -->
 
-## 2026-10-06 模板迁入 templates/,全局入口拆成「共享偏好 + 每宿主薄入口」
+## 2026-10-06 English by default, Chinese kept as an opt-in mirror
 
-**选了:** 项目模板与全局模板统一放进 `templates/`,仓库根 `AGENTS.md` / `.ai/` 改为本仓库自己的真实记忆;全局入口由「`~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md` 都软链接到 `~/.ai/AGENTS.md`」改为「`~/.ai/AGENTS.md` 放跨工具共享偏好,每个宿主一个薄入口文件先引用它,再补宿主专属配置」。
+**Chose:** English is the default language. The Chinese text lives under `zh-CN/` and is installed with `install.sh --lang zh-CN`. Scripts are maintained once, emit English output, and accept both English and Chinese section names when parsing.
 
-**背景:** 旧设计里根目录文件兼当新项目模板,导致仓库自己的进度一直是空模板;全局三处软链接到同一文件,宿主专属内容无处可放。
+**Context:** The repository is being promoted to an English-speaking audience. When the files an AI reads are in Chinese, the agent replies in Chinese and English-speaking users cannot maintain the rules.
 
-**为什么:**
-- 宿主专属配置(Claude 的实施 agent 选档、`permissions.allow`、hook;Codex 的沙箱与 rules)写进共享文件会误导另一个宿主
-- 仓库需要记录自己的进度、决策和坑,不能再和模板共用文件
+**Alternatives rejected:** Translating only the README and docs — the installed templates, skills and agents would still be Chinese, so the problem remains. Two complete sets of scripts — double the maintenance for logic that is identical.
 
-**放弃的备选:** 继续软链接、在共享文件里按宿主分节 —— 每个宿主都要读到无关内容,且容易把一个宿主的放行当成另一个的授权。
+**Risks / known costs:** The two bodies of text (English and `zh-CN/`) must be kept in sync. The translated skills / agents were verified only at the format and script level; their behavior has not been compared against the Chinese versions in real long-running tasks.
 
-**风险 / 已知代价:** 入口文件变成三份,共享规则改动时要确认没有在薄入口里重复。
+## 2026-10-06 Templates moved into templates/; global entry split into "shared preferences + a thin entry per host"
+
+**Chose:** Project templates and global templates all live in `templates/`; the repo-root `AGENTS.md` / `.ai/` become this repository's own real memory. The global entry changes from "`~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md` both symlink to `~/.ai/AGENTS.md`" to "`~/.ai/AGENTS.md` holds cross-tool shared preferences, and each host has a thin entry file that references it first and then adds host-specific configuration".
+
+**Context:** In the old design the root files doubled as the new-project template, so the repository's own progress stayed an empty template; with three global symlinks to one file, host-specific content had nowhere to go.
+
+**Why:**
+- Host-specific configuration (Claude's implementer agent tiers, `permissions.allow`, hooks; Codex's sandbox and rules) in the shared file would mislead the other host
+- The repository needs to record its own progress, decisions and gotchas, and can no longer share files with the templates
+
+**Alternatives rejected:** Keeping the symlinks, or splitting the shared file into per-host sections — every host would read irrelevant content, and it is easy to mistake one host's allowance for authorization on another.
+
+**Risks / known costs:** There are now three entry files; when shared rules change, make sure nothing is duplicated in the thin entries.
 
 <!--
-## YYYY-MM-DD 决策标题
+## YYYY-MM-DD Decision title
 
-**选了:** xxx
+**Chose:** xxx
 
-**背景:** 当时面对什么问题 / 在什么之间选择。
+**Context:** The problem at the time / what the options were.
 
-**为什么:**
-- 理由 1
-- 理由 2
+**Why:**
+- Reason 1
+- Reason 2
 
-**放弃的备选:** yyy —— 放弃原因。
+**Alternatives rejected:** yyy — why it was rejected.
 
-**风险 / 已知代价:** 这个选择埋下的隐患(如有)。
+**Risks / known costs:** Hazards this choice introduces (if any).
 -->

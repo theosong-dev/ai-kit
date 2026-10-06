@@ -1,18 +1,18 @@
-# 踩坑记录
+# Gotchas
 
-> 只增不改。"试过 X,失败了,原因是 Y,现在用 Z" —— 这类反向知识 agent 读代码反推不出来。
-> 写一次,永久避免下次会话重走老路。
+> Append-only. "Tried X, it failed because of Y, now we use Z" — agents cannot infer this kind of negative knowledge from reading the code.
+> Write it once so later sessions never retake the old path.
 
-<!-- 新坑追加在最上面。模板: -->
+<!-- Add new gotchas at the top. Template: -->
 
 <!--
-## 简短标题
+## Short title
 
-**试过:** 做了什么。
+**Tried:** What was done.
 
-**结果:** 怎么失败的 / 什么现象。
+**Result:** How it failed / what was observed.
 
-**原因:** 为什么失败(如已定位)。
+**Cause:** Why it failed (if identified).
 
-**现在的做法:** 改用什么 / 怎么绕过。
+**Current approach:** What is used instead / how it is worked around.
 -->
