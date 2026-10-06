@@ -28,7 +28,7 @@
 ## 安装
 
 ```bash
-git clone https://github.com/atopsnow/ai-kit.git ~/Projects/ai-kit
+git clone https://github.com/theosong-dev/ai-kit.git ~/Projects/ai-kit
 cd ~/Projects/ai-kit
 bash install.sh --dry-run   # 只打印将做什么
 bash install.sh
