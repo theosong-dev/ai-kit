@@ -81,7 +81,7 @@ Then move anything in `~/.ai/AGENTS.md` that belongs to a single tool into the c
 ## Enabling it in a project
 
 - `initai`: in the current project, generates `AGENTS.md`, a `CLAUDE.md -> AGENTS.md` symlink, and `.ai/PROGRESS.md`, `.ai/DECISIONS.md`, `.ai/GOTCHAS.md`; anything that already exists is skipped. With `AI_KIT_LANG=zh-CN` it uses the Chinese templates.
-- `newproj <project-name> [parent-dir]`: creates the directory, runs `git init`, writes `.gitignore` and the files above, and leaves you in the new directory. The parent directory defaults to `$AI_KIT_PROJECTS_DIR`, or `~/Projects` if unset.
+- `newproj <project-name> [parent-dir]`: creates the directory, runs `git init`, writes `.gitignore` and the files above, and leaves you in the new directory. The parent directory defaults to `$AI_KIT_PROJECTS_DIR`, or `~/Projects` if unset. The project name must be a single directory name (no `/`, not `.` or `..`, not starting with `-`); give the location as the second argument instead, e.g. `newproj my-app ~/work`.
 - `checkgit [dir]`: lists the subprojects under that directory that have not been `git init`ed.
 
 ## Daily use

@@ -144,5 +144,21 @@ REPO="$SAVED_REPO"
 newhome s; out="$(run --dry-run --lang zh-CN)"; rc=$?
 check "s: dry-run zh-CN leaves HOME empty, mentions AI_KIT_LANG" '[ $rc -eq 0 ] && [ -z "$(ls -A "$H")" ] && printf "%s\n" "$out" | grep -q "^\[dry-run\] .*AI_KIT_LANG"'
 
+# t: newproj.sh rejects names that are not a single directory name
+RT="$TMP/repo t"; mkrepo "$RT"; PT="$TMP/parent t"; mkdir -p "$PT"
+for n in "a/b" "/abs/path" "x/" "a/../b" ".." "." "-x" "" " " $'nl\nx'; do
+  out="$(bash "$RT/scripts/newproj.sh" "$n" "$PT" 2>&1)"; rc=$?
+  check "t: newproj.sh rejects name '$n', parent stays empty" '[ $rc -ne 0 ] && [ -z "$(ls -A "$PT")" ] && printf "%s\n" "$out" | grep -q "^error"'
+done
+out="$(bash "$RT/scripts/newproj.sh" "ok name" "$PT" 2>&1)"; rc=$?
+check "t: newproj.sh accepts 'ok name'" '[ $rc -eq 0 ] && [ -d "$PT/ok name/.git" ] && [ -f "$PT/ok name/AGENTS.md" ] && [ -d "$PT/ok name/.ai" ]'
+if command -v zsh >/dev/null 2>&1; then
+  PT2="$TMP/parent t2"; mkdir -p "$PT2"
+  out="$(cd "$TMP" && AI_KIT_PROJECTS_DIR="$PT2" zsh -fc 'source "$1/shell/ai-kit.sh"; newproj a/b; echo "rc=$?"; pwd' _ "$RT" 2>&1)"
+  check "t: zsh newproj function rejects a/b with rc=1 and no cd" 'printf "%s\n" "$out" | grep -q "^error" && printf "%s\n" "$out" | grep -qx "rc=1" && printf "%s\n" "$out" | grep -qxF "$TMP" && [ -z "$(ls -A "$PT2")" ]'
+else
+  echo "skip  t: zsh not found, function check skipped"
+fi
+
 echo ""; echo "Summary: PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ]

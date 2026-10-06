@@ -81,7 +81,7 @@ bash install.sh                             # 从模板生成入口文件
 ## 在项目里启用
 
 - `initai`:在当前项目生成 `AGENTS.md`、`CLAUDE.md -> AGENTS.md` 软链接和 `.ai/PROGRESS.md`、`.ai/DECISIONS.md`、`.ai/GOTCHAS.md`,已存在的跳过。`AI_KIT_LANG=zh-CN` 时用中文模板。
-- `newproj <项目名> [父目录]`:建目录、`git init`、`.gitignore`、上述文件,结束后停在新目录。父目录默认 `$AI_KIT_PROJECTS_DIR`,未设置时 `~/Projects`。
+- `newproj <项目名> [父目录]`:建目录、`git init`、`.gitignore`、上述文件,结束后停在新目录。父目录默认 `$AI_KIT_PROJECTS_DIR`,未设置时 `~/Projects`。项目名只能是单个目录名(不含 `/`、不是 `.` / `..`、不以 `-` 开头);位置用第二个参数指定,例如 `newproj my-app ~/work`。
 - `checkgit [目录]`:列出该目录下未 `git init` 的子项目。
 
 ## 日常用法

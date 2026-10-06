@@ -24,8 +24,14 @@ AI_KIT_INIT="$AI_KIT_DIR/scripts/init-ai.sh"
 NAME="$1"
 PARENT="${2:-$DEFAULT_PARENT}"
 
-if [ -z "$NAME" ]; then
-  echo "Usage: newproj <name> [parent-dir]"
+# The name must be a single directory name: no "/", not "." / "..", not
+# starting with "-", not empty or blank. Otherwise an absolute path passed
+# as the name would be created under the default parent dir.
+NAME_OK=1
+case "$NAME" in */*|.|..|-*|*$'\n'*) NAME_OK=0 ;; esac
+[ -n "$(printf '%s' "$NAME" | tr -d '[:space:]')" ] || NAME_OK=0
+if [ "$NAME_OK" -eq 0 ]; then
+  echo "error  project name must be a single directory name (got: $NAME); pass the location as the second argument: newproj <name> <parent-dir>" >&2
   exit 1
 fi
 

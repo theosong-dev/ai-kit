@@ -28,6 +28,8 @@ It blocks these:
 - **Recursive deletion of the `.next` build directory** (including variants with a `.next-` prefix), because a dev server may be using it.
 - **Destructive git history / working-tree commands**: `git reset` with `--hard`, and `git clean` with `--force` or a flag cluster containing `f`. `git reset --soft`, `git clean -n`, `git stash`, and the like are not blocked.
 
+Every block message states what to do instead, not just "not allowed": for example, push without force or push to another branch and open a PR, or ask the user to run the command in their terminal with the `!` prefix. The model can correct itself from the error alone.
+
 A few design trade-offs:
 
 - A command is split into segments at unquoted newlines and `&&` `||` `;` `|`, and each segment is judged on its own; tokenization uses Python's `shlex`, so content inside quotes is a single argument and does not take part in matching (`git commit -m "fix: handle -n flag"` is allowed).

@@ -202,14 +202,14 @@ check_segment_argv() {
     if [ $((has_commit + has_push + has_merge)) -gt 0 ]; then
       for ((i=0;i<n;i++)); do
         if [ "${toks[i]}" = "--no-verify" ]; then
-          block "Blocked by global guard: --no-verify bypasses git verification hooks and is not allowed."
+          block "Blocked by global guard: --no-verify bypasses git verification hooks and is not allowed. Rerun the command without it and fix whatever the hook reports; if you think the hook itself is wrong, explain that to the user and let them decide instead of bypassing it."
         fi
       done
     fi
     if [ "$has_commit" -eq 1 ]; then
       for ((i=0;i<n;i++)); do
         if [ "${toks[i]}" = "-n" ]; then
-          block "Blocked by global guard: git commit -n bypasses the pre-commit hook and is not allowed."
+          block "Blocked by global guard: git commit -n bypasses the pre-commit hook and is not allowed. Commit again without -n and fix whatever the hook reports; if you think the hook itself is wrong, explain that to the user and let them decide instead of bypassing it."
         fi
       done
     fi
@@ -264,7 +264,7 @@ check_segment_argv() {
             +*)
               target="$(refspec_dest "$rs" "$current_branch")"
               if is_main "$target"; then
-                block "Blocked by global guard: force push to the main / master branch is not allowed."
+                block "Blocked by global guard: force push to the main / master branch is not allowed because it rewrites shared history. Push without force after rebasing or merging onto the latest remote branch, or push to another branch and open a PR; if main / master history really must be rewritten, ask the user to run it in their terminal with the ! prefix."
               fi
               ;;
           esac
@@ -280,15 +280,15 @@ check_segment_argv() {
           for ((pi=1; pi<pcount; pi++)); do
             target="$(refspec_dest "${positionals[pi]}" "$current_branch")"
             if is_main "$target"; then
-              block "Blocked by global guard: force push to the main / master branch is not allowed."
+              block "Blocked by global guard: force push to the main / master branch is not allowed because it rewrites shared history. Push without force after rebasing or merging onto the latest remote branch, or push to another branch and open a PR; if main / master history really must be rewritten, ask the user to run it in their terminal with the ! prefix."
             fi
           done
         else
           # 0 or 1 positional (nothing / remote only) -> current branch decides.
           if is_main "$current_branch"; then
-            block "Blocked by global guard: the current branch is $current_branch; force push to main / master is not allowed."
+            block "Blocked by global guard: the current branch is $current_branch; force push to main / master is not allowed. Push without force after rebasing or merging onto the latest remote branch, or push to another branch and open a PR; if main / master history really must be rewritten, ask the user to run it in their terminal with the ! prefix."
           elif [ -z "$current_branch" ]; then
-            block "Blocked by global guard: cannot determine the target repository branch (path does not exist or is not a git repository); force push is blocked by the fail-safe policy."
+            block "Blocked by global guard: cannot determine the target repository branch (path does not exist or is not a git repository); force push is blocked by the fail-safe policy. Run the command inside the target repository, point at it with git -C <repo>, or give an explicit '<remote> <local>:<branch>' refspec so the target branch can be determined."
           fi
         fi
       fi
@@ -318,7 +318,7 @@ check_segment_argv() {
       for tk in "${targets[@]}"; do
         [ -n "$tk" ] || continue
         if dangerous_target "$tk" "$seg_cwd" "$repo_root"; then
-          block "Blocked by global guard: recursive deletion of dangerous path '$tk' is not allowed."
+          block "Blocked by global guard: recursive deletion of dangerous path '$tk' is not allowed. Delete the specific subpaths or files by name instead; if the whole path really must be removed, ask the user to run it in their terminal with the ! prefix."
         fi
         if dangerous_next_target "$tk"; then
           block "guard: refusing recursive rm of a Next.js .next directory (dev server may be using it); stop the dev server and mv it instead"

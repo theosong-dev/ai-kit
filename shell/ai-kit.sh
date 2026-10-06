@@ -21,8 +21,12 @@ export AI_KIT_DIR
 #   Leaves you in the new project dir. Parent defaults to $AI_KIT_PROJECTS_DIR or ~/Projects.
 # ============================================================
 newproj() {
-  if [ -z "$1" ]; then
-    echo "Usage: newproj <name> [parent-dir]"
+  # same name check as scripts/newproj.sh; fail before the script or the cd runs
+  local name_ok=1
+  case "$1" in */*|.|..|-*|*$'\n'*) name_ok=0 ;; esac
+  [ -n "$(printf '%s' "$1" | tr -d '[:space:]')" ] || name_ok=0
+  if [ "$name_ok" -eq 0 ]; then
+    echo "error  project name must be a single directory name (got: $1); pass the location as the second argument: newproj <name> <parent-dir>" >&2
     return 1
   fi
   bash "$AI_KIT_DIR/scripts/newproj.sh" "$@" || return 1
